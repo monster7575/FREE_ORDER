@@ -1,0 +1,45 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ko" lang="ko">
+<title>설정</title>
+<head>
+    <%- partial('../common/header_mobile.ejs') %>
+    <script language="javascript">
+
+        $(function() {
+
+            $('.seller_info').on('click', function(){
+                location.href = '/srv/seller/mobile/update';
+            });
+            $('.seller_menu_info').on('click', function(){
+                location.href = '/srv/goods/mobile/list';
+            });
+
+            $('.sellermsglog').on('click', function(){
+                location.href = '/srv/sellmsglog/mobile/list';
+            });
+
+            $('.buymsglog').on('click', function(){
+                location.href = '/srv/buymsglog/mobile/list';
+            });
+        });
+
+    </script>
+</head>
+<body>
+<div id="wrap">
+    <div class="setting_theme">
+        <ul>
+            <li class = "seller_info">기본정보<span class="more_off"></span></li>
+            <li class = "seller_menu_info">메뉴정보<span class="more_off"></span></li>
+            <li class = "sellermsglog">발신내역<span class="more_off"></span></li>
+            <li class = "buymsglog">수신내역<span class="more_off"></span></li>
+        </ul>
+    </div>
+
+</div>
+
+
+
+
+</body>
+</html>

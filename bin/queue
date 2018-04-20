@@ -1,0 +1,116 @@
+#!/usr/bin/env node
+var _ = require("underscore");
+var path = require('path-exists');
+var moduleName = "default";
+
+if(process.argv.length > 1)
+    moduleName = process.argv[2];
+
+var modulePath = '../queues/'+moduleName;
+if(!path(modulePath + ".js"))
+{
+    console.log("schedule module is not exist");
+    return;
+}
+
+var cmd = process.cwd();
+var worker = require(modulePath);
+var RunObject = worker.RunObject;
+//var winston = require("../logger");
+var CONFIG = require(cmd + "/config").CONFIG;
+var ewinston = require(cmd + "/common/ewinston");
+
+//rsmp listener
+RedisSMQ = require("rsmq");
+rsmq = new RedisSMQ({host: CONFIG.RSMQ.HOST, port: CONFIG.RSMQ.PORT, ns: CONFIG.RSMQ.NAMESPACE});
+
+rsmq.listQueues(function(err,resp){
+    if(err)
+    {
+        var error = {file: __filename, code: -1001, description: err.toString()};
+        ewinston.log("error",JSON.stringify(error));
+    }
+    else
+    {
+        var queue = _.findWhere(resp,moduleName);
+        if(typeof queue == "undefined")
+        {
+            rsmq.createQueue({qname:moduleName}, function (err, resp) {
+                if(err)
+                {
+                    var info = {file: __filename, code: 0, description: err.toString()};
+                    ewinston.log("info",JSON.stringify(info));
+                }
+                else
+                {
+                    if (resp===1)
+                    {
+                        var info = {file: __filename, code: 0, description:"rsmq created"};
+                        ewinston.log("info",JSON.stringify(info));
+                    }
+                }
+            });
+        }
+    }
+});
+
+var RSMQWorker = require( "rsmq-worker" );
+var worker = new RSMQWorker( moduleName, {
+    interval: [ .1, 1 ],                // wait 100ms between every receive and step up to 1,3 on empty receives
+    invisibletime: 2,                   // hide received message for 5 sec
+    maxReceiveCount: 2,                 // only receive a message 2 times until delete
+    autostart: true,                   // start worker on init
+    rsmq:rsmq
+});
+
+// Listen to errors
+worker.on('error', function( err, msg ){
+    var error = {file: __filename, code: -1001, description:err.toString()};
+    ewinston.log("error",JSON.stringify(error));
+});
+
+worker.on('timeout', function( msg ){
+    //console.log( "TIMEOUT", msg.id, msg.rc );
+    var info = {file: __filename, code: 0, description:"rsmq timeout"};
+    ewinston.log("info",JSON.stringify(info));
+});
+
+worker.on( "message", function( message, next, id ){
+    if(id)
+    {
+        var info = {file: __filename, code: 0, description:"Message received." + id};
+        ewinston.log("info",JSON.stringify(info));
+        var robj = new RunObject();
+        robj.start(message, sendQueueCallback);
+        next();
+    }
+    else
+    {
+        var info = {file: __filename, code: 0, description:"No messages for me..."};
+        ewinston.log("info",JSON.stringify(info));
+    }
+});
+
+function sendQueueCallback(json)
+{
+    rsmq.sendMessage({qname:moduleName, message:JSON.stringify(json.message), delay:json.delay}, function (err, resp) {
+        if(err)
+        {
+            var error = {file: __filename, code: -1001, description:err.toString()};
+            ewinston.log("error",JSON.stringify(error));
+        }
+        else
+        {
+            if (resp) {
+                var info = {file: __filename, code: 0, description:"Message sended. " + resp};
+                ewinston.log("info",JSON.stringify(info));
+            }
+            else
+            {
+                var info = {file: __filename, code: 0, description:"resp is empty"};
+                ewinston.log("info",JSON.stringify(info));
+            }
+        }
+    });
+}
+

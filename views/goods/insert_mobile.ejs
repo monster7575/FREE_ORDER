@@ -1,0 +1,64 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ko" lang="ko">
+<title>매장 메뉴 등록</title>
+<head>
+    <%- partial('../common/header_mobile.ejs') %>
+    <script type="text/javascript" src="http://cdnjs.cloudflare.com/ajax/libs/backbone.validation/0.7.1/backbone-validation-min.js"></script>
+    <script type="text/javascript" src="<%=CMS.cdn%>/html/fo/js/inquire.js"></script>
+
+
+</head>
+<body>
+
+<div id="wrap" role="form">
+
+    <div id="subConts">
+
+        <div id="settingConts">
+            <table class="tblType">
+                <colgroup> <col style="width:25%;"> <col style="width:75%;"> </colgroup>
+                <tbody>
+                <tr>
+                    <th>매뉴명</th>
+                    <td>
+                        <input id="title" type="text" name="title" placeholder = "매뉴명을 입력하세요." class = "seller_title_input">
+                    </td>
+                </tr>
+                <tr>
+                    <th>가격</th>
+                    <td>
+                        <input id="price" type="text" name="price" placeholder = "가격을 입력하세요." class = "seller_title_input">
+                    </td>
+                </tr>
+                <tr>
+                    <th>설명</th>
+                    <td>
+                        <textarea cols="10" rows="10" class="sellerintextarea" id="content" name="content"></textarea>
+                    </td>
+                </tr>
+
+                <tr>
+                    <th>사진</th>
+                    <td>
+                        <input id="attache" type="file" name="attache">
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="2">
+                        <div id = "thumb4" class = "thumb2"></div>
+                        <div id = "thumb3" class = "thumb2"></div>
+                        <div id = "thumb2" class = "thumb2"></div>
+                        <div id = "thumb1" class = "thumb1"></div>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+            <div class="gap20"></div>
+            <div class="email_regist"><a href="javascript:location.href = '/srv/buyer/mobile/list';" id="seller_save">저장</a></div>
+            <div class="email_login"><a href="javascript:javascript:history.back();" id="seller_cancel">취소</a></div>
+        </div>
+    </div>
+</div><!-- (e) #wrap -->
+
+</body>
+</html>

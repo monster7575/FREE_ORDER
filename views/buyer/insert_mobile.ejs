@@ -1,0 +1,131 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ko" lang="ko">
+<title>주문/ 등록</title>
+<head>
+    <%- partial('../common/header_mobile.ejs') %>
+    <SCRIPT LANGUAGE="JavaScript">
+        <!--
+
+        $.fn.serializeObject = function () {
+            "use strict";
+            var a = {}, b = function (b, c) {
+                var d = a[c.name];
+                "undefined" != typeof d && d !== null ? $.isArray(d) ? d.push(c.value) : a[c.name] = [d, c.value] : a[c.name] = c.value
+            };
+            return $.each(this.serializeArray(), b), a
+        };
+
+        $(function(){
+            $("#mainForm").validate({
+                rules: {
+                    email: {
+                        required: true,
+                        email: true
+                    },
+                    passwd: {
+                        required: true
+                    },
+                    passwd_chk: {
+                        required: true,
+                        equalTo: '#passwd'
+                    }
+                },
+                messages: {
+                    email: {
+                        required:"이메일 주소를 정확하게 입력해주세요.",
+                        email:"이메일 주소를 정확하게 입력해주세요."
+                    },
+                    passwd: {
+                        required:"비밀번호를 입력해주세요."
+                    },
+                    passwd_chk: {
+                        required:"비밀번호를 재 입력해주세요.",
+                        equalTo:"비밀번호 동일하지 않습니다. 재 입력해주세요."
+                    }
+                },
+                errorPlacement: function(error, element) {
+                    // do nothing
+                },
+                invalidHandler: function(form, validator) {
+                    var errors = validator.numberOfInvalids();
+                    if (errors) {
+                        alert(validator.errorList[0].message);
+                        validator.errorList[0].element.focus();
+                    }
+                }
+            });
+
+        });
+
+
+        function formSubmit(){
+
+            var url = "/srv/seller/api/login";
+            var data = $("#mainForm").serializeObject();
+
+
+            $.ajax({
+                type: 'POST',
+                contentType: 'application/x-www-form-urlencoded',
+                url: url,
+                data : data,
+                success: function(res) {
+                    var result = res.result;
+                    console.log('result : ' + JSON.stringify(result));
+                    if(result == 1)
+                    {
+                        window.location.replace('freeorder://action?name=go_main');
+                    }
+                },
+                error: function(){
+
+                }
+            });
+        }
+
+        //-->
+    </SCRIPT>
+</head>
+<body>
+
+<div id="wrap">
+    <form method="POST" action="/srv/<%=objname%>/insert" name = "mainForm"  id="mainForm">
+
+        <div id="subConts">
+
+            <div id="settingConts">
+                <table class="tblType">
+                    <colgroup> <col style="width:25%;"> <col style="width:75%;"> </colgroup>
+                    <tbody>
+                    <tr>
+                        <th>매장명</th>
+                        <td>
+                            <input id="title" type="text" name="title" placeholder = "매장명을 입력하세요." class = "seller_title_input input_disabled" value = "<%=data.title%>" readonly>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <th>주문 내용</th>
+                        <td>
+                            <textarea cols="10" rows="10" class="sellerintextarea" id="content" name="content"></textarea>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>주소</th>
+                        <td>
+                            <input id="address" type="text" name="address" placeholder = "주소를 입력하세요." class = "seller_title_input">
+                        </td>
+                    </tr>
+
+                    </tbody>
+                </table>
+                <div class="gap20"></div>
+                <div class="email_regist" id = "email_regist"><a href="javascript:formSubmit();">저장</a></div>
+                <div class="email_login"><a href="javascript:history.back();" id="seller_cancel">취소</a></div>
+            </div>
+        </div>
+    </form>
+</div><!-- (e) #wrap -->
+
+</body>
+</html>

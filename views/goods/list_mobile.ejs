@@ -1,0 +1,42 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ko" lang="ko">
+<title>메뉴내역</title>
+<head>
+    <%- partial('../common/header_mobile.ejs') %>
+    <script language="javascript">
+
+        $(function() {
+
+            $('.pointList').eq(0).on('click', function(){
+                location.href = '/srv/goods/mobile/update';
+            });
+            $('.pointList').eq(1).on('click', function(){
+                location.href = '/srv/goods/mobile/update';
+            });
+        });
+
+    </script>
+</head>
+<body>
+<div id="wrap">
+
+    <div class="pointList">
+        <ul>
+            <li class="pointList_ttl">갈비찜</li>
+            <li><span></span></li>
+        </ul>
+        <div class="pointList_price">5000원</div>
+    </div>
+    <div class="pointList">
+        <ul>
+            <li class="pointList_ttl">수육</li>
+            <li><span></span></li>
+        </ul>
+        <div class="pointList_price">2000원</div>
+    </div>
+
+</div><!-- (e) #wrap -->
+</body>
+</html>
+
+

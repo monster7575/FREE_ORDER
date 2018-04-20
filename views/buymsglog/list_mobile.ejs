@@ -1,0 +1,51 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ko" lang="ko">
+<title>수신내역</title>
+<head>
+    <%- partial('../common/header_mobile.ejs') %>
+    <script language="javascript">
+
+        $(function() {
+
+            $('.pointList').eq(0).on('click', function(){
+                location.href = '/srv/buymsglog/mobile/update';
+            });
+            $('.pointList').eq(1).on('click', function(){
+                location.href = '/srv/buymsglog/mobile/update';
+            });
+        });
+
+    </script>
+</head>
+<body>
+<div id="wrap">
+
+    <div class="pointList">
+        <ul>
+            <li class="pointList_ttl">***-****-4153<span class="more_off"></span></li>
+            <li><span></span></li>
+        </ul>
+        <div class="pointList_regdate">2018-04-05 13:59</div>
+    </div>
+
+    <div class="pointList">
+        <ul>
+            <li class="pointList_ttl">***-****-4153<span class="more_off"></span></li>
+            <li><span></span></li>
+        </ul>
+        <div class="pointList_regdate">2018-04-05 13:59</div>
+    </div>
+
+    <div class="pointList">
+        <ul>
+            <li class="pointList_ttl">***-****-4153<span class="more_off"></span></li>
+            <li><span></span></li>
+        </ul>
+        <div class="pointList_regdate">2018-04-05 13:59</div>
+    </div>
+
+</div><!-- (e) #wrap -->
+</body>
+</html>
+
+
