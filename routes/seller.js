@@ -53,33 +53,26 @@ router.post('/api/login', function(req, res, next) {
 router.post('/api/update', function(req, res, next) {
     var json = req.body;
 
-    var whereto = [];
-    whereto.push(json.worker);
-    whereto.push(json.tel);
-    var query = "select UID_ as \"uid\" from admin where worker = :worker and tel = :tel";
-
-    db.executeQuery(query,whereto,function(err, result) {
-
-        if(err)
+    console.log('update  : ' + JSON.stringify(json));
+    async.waterfall([
+        async.apply(SellerSelectJoinData, json),
+        SellerUpdate,
+        SellerSelectByeDate,
+        SellerSelect
+    ], function (err, seller) {
+        if (err)
         {
-            var error = {file: __filename, code: -1001, description: err.toString()};
-            ewinston.log("error",JSON.stringify(error));
-            var ret = {result:-1,error:err.toString(),data:[]};
+            ewinston.log("error",JSON.stringify(err));
+            var ret = {result:-1,error:err.description,data:[]};
             res.send(ret);
         }
         else
         {
-            if(result.rows.length > 0)
-            {
-                var user = result.rows[0];
-                var ret = {result:1,error:"",data:[user]};
-                res.send(ret);
-            }
-            else
-            {
-                var ret = {result:-1,error:"cms id is not exist.",data:[]};
-                res.send(ret);
-            }
+            //set cookie
+            res.cookie('uobjid',seller.idx,{ expires: new Date(253402300000000), httpOnly: true });
+            var ret = {result:1,error:"",data:[seller]};
+            console.log('ret : ' + JSON.stringify(ret));
+            res.send(ret);
         }
     });
 
@@ -105,29 +98,6 @@ router.post('/api/shorturl', function(req, res, next) {
     });
 });
 
-router.post('/api/send', function(req, res, next) {
-
-    var json = req.body;
-    var moduleName = "gcm";
-
-    rsmq.sendMessage({qname: moduleName, message: JSON.stringify(json)}, function (err, resp) {
-
-        if (err) {
-            var error = {file: __filename, code: -1001, description: err.toString()};
-            res.send(error);
-        }
-        else {
-            if (resp) {
-                res.send(resp);
-            }
-            else {
-                var error = {file: __filename, code: -1010, description: ERROR["-1010"]};
-                res.send(error);
-            }
-        }
-    });
-});
-
 router.post('/api/insert', function(req, res, next) {
 
     var user = util.getCookieMobile(req);
@@ -142,15 +112,18 @@ router.post('/api/insert', function(req, res, next) {
     res.render(objname+'/insert_mobile', {objname : objname, data : data, error:{}, backurl:'', user:{}, url:util.fullUrl(req)});
 });
 
-router.post('/api/select/snsid', function(req, res, next) {
+router.post('/api/select', function(req, res, next) {
 
     var json = req.body;
     //json.snsid : snsid
     //json.sns : sns
+    //json.auth
 
     async.waterfall([
-        async.apply(SellerSelectSnsid,json)
-    ], function (err, user) {
+        async.apply(SellerSelectJoinData,json)
+    ], function (err, json, seller) {
+        console.log('seller select json : ' + JSON.stringify(json));
+        console.log('seller select seller : ' + JSON.stringify(seller));
         // result now equals 'done'
         if (err)
         {
@@ -160,12 +133,41 @@ router.post('/api/select/snsid', function(req, res, next) {
         }
         else
         {
-            var ret = {result:1,error:"",data:[user]};
+            var ret;
+            if(seller)
+                ret = (seller.useyn == 'Y') ?  {result:1,error:"",data:[seller]} : {result:-2,error:ERROR["-1010"],data:[]};        //useyn N인 경우 승인 미처리 alert
+            else
+                ret = {result:-1,error:"",data:[]};
             res.send(ret);
         }
     });
 });
 
+router.post('/api/select/phonenb', function(req, res, next) {
+
+    var json = req.body;
+    //json.phonenb : phonenb
+
+
+    async.waterfall([
+        async.apply(SellerSelectPhonenb,json)
+    ], function (err, seller) {
+        console.log('seller select json : ' + JSON.stringify(json));
+        // result now equals 'done'
+        if (err)
+        {
+            ewinston.log("info",JSON.stringify(err));
+            var ret = {result:-1,error:err.description,data:[]};
+            res.send(ret);
+        }
+        else
+        {
+
+            var ret = {result:1,error:"",data:[seller]};
+            res.send(ret);
+        }
+    });
+});
 
 /**
  * 매장 회원가입 & 로그인
@@ -179,7 +181,7 @@ router.get(/^(?!api)\/mobile\/login/, function(req, res, next) {
 
 
 /**
- * 매장 이메일 로그인
+ * 매장 등록
  */
 router.post(/^(?!api)\/regist/, function(req, res, next) {
 
@@ -189,8 +191,7 @@ router.post(/^(?!api)\/regist/, function(req, res, next) {
     console.log('seller json : ' + JSON.stringify(json));
 
     async.waterfall([
-        async.apply(SellerSelect,json)
-    ], function (err, user) {
+        async.apply(SellerSelectJoinData,json)], function (err, json, seller) {
         // result now equals 'done'
         if (err)
         {
@@ -199,7 +200,7 @@ router.post(/^(?!api)\/regist/, function(req, res, next) {
         }
         else
         {
-            if(user)
+            if(seller)
             {
                 //set cookie
                 res.cookie('uobjid',seller.idx,{ expires: new Date(253402300000000), httpOnly: true });
@@ -219,7 +220,7 @@ router.post(/^(?!api)\/regist/, function(req, res, next) {
 /**
  * 매장 기본 정보 등록 (삭제???)
  */
-router.post(/^(?!api)\/insert/, function(req, res, next) {
+router.post(/^(?!api)\/login/, function(req, res, next) {
 
     var user = util.getCookieMobile(req);
     var json = req.body;
@@ -283,12 +284,14 @@ function SellerSelectJoinData (json, callback){
     var sns = (json.sns)? json.sns : "Z";
     var auth = (json.auth)? json.auth : "Z";
     var email = (json.email)? json.email : "";
+    var passwd = (json.passwd)? json.passwd : "-1";
 
-    var whereto = (auth == 'E') ? [email] : [snsid, sns];
+    var whereto = (auth == 'E') ? [email, passwd] : [snsid, sns];
 
-    var query = (auth == 'E') ? "SELECT * FROM "+objname+" WHERE email = ? " : "SELECT * FROM "+objname+" WHERE snsid = ? and sns = ?";
+    var query = (auth == 'E') ? "SELECT * FROM "+objname+" WHERE email = ? and passwd = ? " : "SELECT * FROM "+objname+" WHERE snsid = ? and sns = ? ";
 
     db.executeQuery(query,whereto,function(err, result) {
+        console.log('SellerSelectJoinData : ' + JSON.stringify(result));
         if(err)
         {
             var error = {file: __filename, code: -1001, description: err.toString()};
@@ -338,7 +341,7 @@ function SellerUpdate(json, data, callback){
         else
         {
             var query = "UPDATE "+objname+" SET "+ whereas +" WHERE idx = " + idx;
-
+            console.log('SellerUpdate : ' + JSON.stringify(query));
             db.executeTransaction(query,[],function(err,result){
 
                 if(err)
@@ -419,14 +422,25 @@ function SellerInsert (json, callback){
     }
     else
     {
+        var auth = json.auth;
 
         if(json.passwd_chk)
             delete json.passwd_chk;
 
+        /*
         if(!json.title)
             json.title = " ";
         if(!json.content)
             json.content = " ";
+        */
+
+        if(auth == 'E')
+        {
+            if(json.sns)
+                delete json.sns;
+            if(json.snsid)
+                delete json.snsid;
+        }
 
         console.log('SellerInsert====>' + JSON.stringify(json));
 
@@ -457,9 +471,10 @@ function SellerInsert (json, callback){
 
 function SellerSelect(json, callback){
 
+    console.log('SellerSelect json: ' + JSON.stringify(json));
     if(json.idx)
     {
-        var whereto = [json.idx];
+        var whereto = (json.idx) ? [json.idx] : (json.sobjid) ? [json.sobjid] : [-1];
         var query = "SELECT * FROM "+objname+" WHERE idx = ?";
         db.executeQuery(query,whereto,function(err, result) {
             if(err)
@@ -496,7 +511,7 @@ function SellerSelectPhonenb(json, callback){
     if(json.phonenb)
     {
         var whereto = [json.phonenb];
-        var query = "SELECT * FROM "+objname+" WHERE phonenb = ? and useyn = 'Y' ";
+        var query = "SELECT * FROM "+objname+" WHERE phonenb = ? and useyn = 'Y'  ";
         db.executeQuery(query,whereto,function(err, result) {
             if(err)
             {
@@ -557,6 +572,35 @@ function SellerSelectSnsid (json, callback){
     });
 }
 
+
+function sendSellerPush (json, callback){
+
+    var moduleName = "gcm";
+    console.log('sendSellerPush : ' + JSON.stringify(json));
+    rsmq.sendMessage({qname: moduleName, message: JSON.stringify(json)}, function (err, resp) {
+
+        if (err) {
+            var error = {file: __filename, code: -1001, description: err.toString()};
+            ewinston.log("error",JSON.stringify(error));
+            callback(error);
+        }
+        else {
+            if (resp)
+            {
+                callback(null,json);
+            }
+            else
+            {
+                var error = {file: __filename, code: -1010, description: ERROR["-1010"] };
+                console.log('sendSellerPush error: ' + JSON.stringify(error));
+                ewinston.log("error",JSON.stringify(error));
+                callback(error);
+            }
+        }
+    });
+}
+
 module.exports = router;
 module.exports.SellerSelectPhonenb = SellerSelectPhonenb;
-
+module.exports.sendSellerPush = sendSellerPush;
+module.exports.SellerSelect = SellerSelect;

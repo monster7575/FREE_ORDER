@@ -24,13 +24,13 @@ function GCM(){
             timeToLive: 0,
             content_available: true,
             data: {
-                message: json.message,
-                title: "test",
-                data: {"snsid":"355480598","sns":"K","typ":"S","saving":0,"adroute":"O"}
+                message: json.content,
+                title: json.title,
+                data: json
             }
         });
 
-        sender.send(message, {registrationTokens: [json.token]}, function (err, response) {
+        sender.send(message, {registrationTokens: [json.gcmtoken]}, function (err, response) {
             if (err) {
                 var error = {file: __filename, code: -1001, description: err.toString()};
                 console.log('error : ' + JSON.stringify(error));

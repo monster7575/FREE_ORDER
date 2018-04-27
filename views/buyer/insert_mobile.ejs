@@ -18,29 +18,19 @@
         $(function(){
             $("#mainForm").validate({
                 rules: {
-                    email: {
-                        required: true,
-                        email: true
-                    },
-                    passwd: {
+                    content: {
                         required: true
                     },
-                    passwd_chk: {
-                        required: true,
-                        equalTo: '#passwd'
+                    address: {
+                        required: true
                     }
                 },
                 messages: {
-                    email: {
-                        required:"이메일 주소를 정확하게 입력해주세요.",
-                        email:"이메일 주소를 정확하게 입력해주세요."
+                    content: {
+                        required:"주문 내용을 입력해주세요."
                     },
-                    passwd: {
-                        required:"비밀번호를 입력해주세요."
-                    },
-                    passwd_chk: {
-                        required:"비밀번호를 재 입력해주세요.",
-                        equalTo:"비밀번호 동일하지 않습니다. 재 입력해주세요."
+                    address: {
+                        required:"주소를 입력해주세요."
                     }
                 },
                 errorPlacement: function(error, element) {
@@ -59,28 +49,37 @@
 
 
         function formSubmit(){
+            //return document.mainForm.submit();
+            if (!$("#mainForm").validate()) {
+                return false;
+            } else {
 
-            var url = "/srv/seller/api/login";
-            var data = $("#mainForm").serializeObject();
+                var url = "/srv/buyer/api/insert";
+                var data = $("#mainForm").serializeObject();
 
+                $.ajax({
+                    type: 'POST',
+                    contentType: 'application/x-www-form-urlencoded',
+                    url: url,
+                    data : data,
+                    success: function(res) {
+                        var result = res.result;
+                        console.log('result : ' + JSON.stringify(result));
+                        if(result == 1)
+                        {
+                           alert('주문이 완료되었습니다.');
+                            $("#email_regist").remove();
+                        }
+                        else
+                        {
+                            alert('주문이 실패되었습니다.');
+                        }
+                    },
+                    error: function(){
 
-            $.ajax({
-                type: 'POST',
-                contentType: 'application/x-www-form-urlencoded',
-                url: url,
-                data : data,
-                success: function(res) {
-                    var result = res.result;
-                    console.log('result : ' + JSON.stringify(result));
-                    if(result == 1)
-                    {
-                        window.location.replace('freeorder://action?name=go_main');
                     }
-                },
-                error: function(){
-
-                }
-            });
+                });
+            }
         }
 
         //-->
@@ -89,7 +88,7 @@
 <body>
 
 <div id="wrap">
-    <form method="POST" action="/srv/<%=objname%>/insert" name = "mainForm"  id="mainForm">
+    <form method="POST" action="#" name = "mainForm"  id="mainForm">
 
         <div id="subConts">
 
@@ -113,7 +112,7 @@
                     <tr>
                         <th>주소</th>
                         <td>
-                            <input id="address" type="text" name="address" placeholder = "주소를 입력하세요." class = "seller_title_input">
+                            <input id="address" type="text" name="address" placeholder = "주소를 입력하세요." class = "seller_title_input" value="<%=data.address%>">
                         </td>
                     </tr>
 
@@ -124,6 +123,9 @@
                 <div class="email_login"><a href="javascript:history.back();" id="seller_cancel">취소</a></div>
             </div>
         </div>
+        <input type = "hidden" name = "phonenb" id = "phonenb" value = "<%=data.phonenb%>" />
+        <input type = "hidden" name = "sobjid" id = "sobjid" value = "<%=data.sobjid%>" />
+        <input type = "hidden" name = "price" id = "price" value = "10000" />
     </form>
 </div><!-- (e) #wrap -->
 

@@ -27,5 +27,64 @@ router.get(/^(?!api)\/mobile\/update/, function(req, res, next) {
 
 });
 
+function insertFunction (json, callback){
+
+
+    console.log('insertFunction====>' + JSON.stringify(json));
+    var into = [json.content, json.address, json.idx, json.sobjid, json.price];
+    var query = "insert into "+objname+" (content, address, bobjid, sobjid, price) value (?, ?, ?, ?, ?) ";
+    db.executeTransaction(query,into,function(err,result){
+        if(err)
+        {
+            var error = {file: __filename, code: -1001, description: err.toString()};
+            callback(error);
+        }
+        else
+        {
+            if(result.insertId)
+            {
+                var ret = JSON.parse(JSON.stringify(json));
+                ret.idx = result.insertId;
+                callback(null,ret);
+            }
+            else
+            {
+                var error = {file: __filename, code: -1019, description:ERROR["-1019"]};
+                callback(error);
+            }
+        }
+    });
+
+}
+
+function selectFunction(json, callback){
+
+    console.log('selectFunction json: ' + JSON.stringify(json));
+    if(json.uobjid)
+    {
+        var whereto = [json.uobjid];
+        var query = "SELECT a.*, b.phonenb as phonenb FROM "+objname+" a join buyer b on a.bobjid = b.idx WHERE a.sobjid = ? order by a.idx desc";
+        db.executeQuery(query,whereto,function(err, result) {
+            if(err)
+            {
+                var error = {file: __filename, code: -1001, description: err.toString()};
+                callback(error);
+            }
+            else
+            {
+                console.log('BuyerSelect result : ' + JSON.stringify(result.rows));
+                callback(null, result.rows);
+            }
+        });
+    }
+    else
+    {
+        var error = {file: __filename, code: -1005, description:ERROR["-1005"]};
+        callback(error);
+    }
+
+}
 
 module.exports = router;
+module.exports.insertFunction = insertFunction;
+module.exports.selectFunction = selectFunction;
