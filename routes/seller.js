@@ -3,7 +3,7 @@ var router = express.Router();
 
 var path = require('path');
 var async = require("async");
-
+var moment = require('moment');
 var objname = path.basename(__filename, '.js');
 var cmd = process.cwd();
 var util = require(cmd + "/common/util");
@@ -17,6 +17,50 @@ var RedisSMQ = require("rsmq");
 rsmq = new RedisSMQ( {host: CONFIG.RSMQ.HOST, port: CONFIG.RSMQ.PORT, ns: CONFIG.RSMQ.NAMESPACE} );
 var shorUrlKEY = "AIzaSyB2Di7GVIBLJhURbklprv1B7pcLoRXMChU";
 
+/**
+ * 매장 이메일 회원 가입
+ */
+router.get(/^(?!api)\/mobile\/regist/, function(req, res, next) {
+
+    res.render(objname+'/regist_mobile', {objname : objname, error:'', backurl:'', user:{}, url:util.fullUrl(req)});
+
+});
+
+
+/**
+ * 매장 기본 정보 수정
+ */
+router.get(/^(?!api)\/mobile\/update/, function(req, res, next) {
+
+    var user = util.getCookieMobile(req);
+
+    var json = {};
+    json.idx = user.uobjid;
+
+    async.waterfall([
+        async.apply(SellerSelect, json)
+    ], function (err, data) {
+        if (err)
+        {
+            ewinston.log("error",JSON.stringify(err));
+            res.render('common/error_mobile', {objname : objname, error:err, backurl:'', user:{}, url:util.fullUrl(req)});
+        }
+        else
+        {
+
+            res.render(objname+'/update_mobile', {objname:objname, data:data, user:user, url:util.fullUrl(req), moment : moment});
+        }
+    });
+});
+
+/**
+ * 설정 메인
+ */
+router.get(/^(?!api)\/mobile\/main\/setting/, function(req, res, next) {
+
+    res.render(objname+'/setting_mobile');
+
+});
 
 router.post('/api/login', function(req, res, next) {
 
@@ -148,10 +192,18 @@ router.post('/api/select/phonenb', function(req, res, next) {
     var json = req.body;
     //json.phonenb : phonenb
 
-
+    console.log('AAAAAAAAAA : ' + JSON.stringify(json));
     async.waterfall([
-        async.apply(SellerSelectPhonenb,json)
-    ], function (err, seller) {
+        async.apply(SellerSelectPhonenb,json),
+        SellerSelectJoinData,
+        function (item, data, callback)
+        {
+            item.gcmtoken = json.gcmtoken;
+            callback(null, item, data);
+        },
+        SellerUpdate,
+        SellerSelectByeDate,
+        SellerSelect], function (err, seller) {
         console.log('seller select json : ' + JSON.stringify(json));
         // result now equals 'done'
         if (err)
@@ -174,9 +226,33 @@ router.post('/api/select/phonenb', function(req, res, next) {
  */
 router.get(/^(?!api)\/mobile\/login/, function(req, res, next) {
 
-    res.render(objname+'/login_mobile', {objname : objname, data : {}, error:{}, backurl:'', user:{}, url:util.fullUrl(req)});
+    var user = util.getCookieMobile(req);
+    console.log('seller user : ' + JSON.stringify(user));
 
+    var json = {};
+    json.idx = user.uobjid;
 
+    async.waterfall([
+        async.apply(SellerSelect,json)
+    ], function (err, seller) {
+        console.log('seller : ' + JSON.stringify(seller));
+        // result now equals 'done'
+        if (err)
+        {
+            res.render(objname+'/login_mobile', {objname : objname, data : {}, error:{}, backurl:'', user:user, url:util.fullUrl(req)});
+        }
+        else
+        {
+            if(seller.idx)
+            {
+                res.redirect('freeorder://action?name=go_main&phonenb='+seller.phonenb);
+            }
+            else
+            {
+                res.render(objname+'/login_mobile', {objname : objname, data : {}, error:{}, backurl:'', user:user, url:util.fullUrl(req)});
+            }
+        }
+    });
 });
 
 
@@ -187,8 +263,6 @@ router.post(/^(?!api)\/regist/, function(req, res, next) {
 
     var user = util.getCookieMobile(req);
     var json = req.body;
-    console.log('seller user : ' + JSON.stringify(user));
-    console.log('seller json : ' + JSON.stringify(json));
 
     async.waterfall([
         async.apply(SellerSelectJoinData,json)], function (err, json, seller) {
@@ -250,33 +324,7 @@ router.post(/^(?!api)\/login/, function(req, res, next) {
 });
 
 
-/**
- * 매장 이메일 회원 가입
- */
-router.get(/^(?!api)\/mobile\/regist/, function(req, res, next) {
 
-    res.render(objname+'/regist_mobile', {objname : objname, error:'', backurl:'', user:{}, url:util.fullUrl(req)});
-
-});
-
-
-/**
- * 매장 기본 정보 수정
- */
-router.get(/^(?!api)\/mobile\/update/, function(req, res, next) {
-
-    res.render(objname+'/update_mobile');
-
-});
-
-/**
- * 설정 메인
- */
-router.get(/^(?!api)\/mobile\/main\/setting/, function(req, res, next) {
-
-    res.render(objname+'/setting_mobile');
-
-});
 
 function SellerSelectJoinData (json, callback){
 
@@ -314,10 +362,14 @@ function SellerSelectJoinData (json, callback){
 
 function SellerUpdate(json, data, callback){
 
+    console.log('SellerUpdate json: ' + JSON.stringify(json));
+    console.log('SellerUpdate data: ' + JSON.stringify(data));
+
     if(data)
     {
         var idx = data.idx;
         var whereas = '';
+
 
         if(json.title)
             whereas += " title = '"+ json.title +"', ";

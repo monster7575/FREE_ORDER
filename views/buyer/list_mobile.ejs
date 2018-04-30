@@ -3,7 +3,66 @@
 <title>주문 리스트</title>
 <head>
     <%- partial('../common/header_mobile.ejs') %>
+    <script type="text/javascript">
+        function updateState(idx, state, phonenb, startdate, bobjid) {
 
+            //alert('idx : ' + idx + 'state : ' + state + 'phonenb :' + phonenb + 'startdate : ' + startdate);
+            var url = "/srv/buymsglog/api/update";
+            var data = {idx: idx};
+
+
+            if (state == '0') {
+                data.startdate = moment().format('YYYY-MM-DD HH:mm:ss');
+                var bool = confirm('접수 처리를 진행하시겠습니까?');
+                if (bool) {
+                    var content = '고객님의 주문이 정상 접수 되었습니다.';
+                    window.location.replace('freeorder://action?name=sendsms&content=' + content + '&phonenb=' + phonenb +'&bobjid='+bobjid);
+                }
+            }
+            else if (state == '1') {
+                var due = $("#due option:selected").val();
+                if (due == 0) {
+                    alert('소요시간을 선택하세요.');
+                }
+                else {
+                    var duedate = moment(startdate).add(due, 'minute');
+                    data.duedate = moment(duedate).format('YYYY-MM-DD HH:mm:ss');
+                    var bool = confirm('도착 예정 시간 ' + data.duedate + '으로 SMS를 발송합니다.');
+                    if (bool) {
+                        var content = '고객님이 주문하신 음식이 ' + data.duedate + '에 도착할 예정입니다.';
+                        window.location.replace('freeorder://action?name=sendsms&content=' + content + '&phonenb=' + phonenb +'&bobjid='+bobjid);
+                    }
+                }
+            }
+            else if (state == '2') {
+                data.enddate = moment().format('YYYY-MM-DD HH:mm:ss');
+                var bool = confirm('해당 주문건을 완료합니다.');
+                if (bool) {
+
+                }
+            }
+            else if (state == '3')
+                alert('해당 주문건은 완료 되었습니다.');
+
+            if (state != '3')
+            {
+                $.ajax({
+                    type: 'POST',
+                    contentType: 'application/x-www-form-urlencoded',
+                    url: url,
+                    data : data,
+                    success: function(res) {
+                        var result = res.result;
+                        console.log('result : ' + JSON.stringify(result));
+                        window.location.reload();
+                    },
+                    error: function(){
+
+                    }
+                });
+            }
+        }
+    </script>
 </head>
 <body>
 <div id="wrap">
@@ -34,19 +93,53 @@
         {
             var obj = data[i];
             var content = obj.content;
-            var regdate = obj.regdate;
+            var regdate = moment(obj.regdate).format('YYYY-MM-DD HH:mm');
             var phonenb = obj.phonenb;
             var address = obj.address;
-         //   var now = moment().format('YYYY-MM-DD HH:mm');
-          //  var minute = moment(regdate, 'YYYY-MM-DD HH:mm').diff(now, 'minute');
-
+            var idx = obj.idx;
+            var bobjid = obj.bobjid;
+            var now = moment().format('YYYY-MM-DD HH:mm');
+            console.log('regdate : ' + regdate);
+            console.log('now : ' + now);
+            var minute = moment(now).diff(regdate, 'minute');
+            var startdate  = obj.startdate;
+            var duedate = obj.duedate;
+            var enddate = obj.enddate;
+            var state = 0;
+            var state_txt = "";
+            var css_txt = "";
+            if(enddate)
+            {
+                state = 3;
+                state_txt = "완료";
+                css_txt = "order_btn_end";
+            }
+            else if(duedate)
+            {
+                state = 2;
+                state_txt = "배달중";
+                css_txt = "order_btn_due";
+            }
+            else if(startdate)
+            {
+                state = 1;
+                state_txt = "접수완료";
+                css_txt = "order_btn_start";
+            }
+            else
+            {
+                state = 0;
+                state_txt = "접수대기";
+                css_txt = "order_btn";
+            }
 
     %>
     <div class = "order_item">
+
         <!-- 주문 내역 -->
         <div class = "pad10lr">
             <div class = "order_header">
-                <div class = "order_header_phone"><%=phonenb%><span class = "order_header_time"><%=regdate%>분전</span></div>
+                <div class = "order_header_phone"><%=phonenb%><span class = "order_header_time"><%=minute%>분전</span></div>
             </div>
         </div>
 
@@ -57,10 +150,39 @@
             </div>
         </div>
 
-        <!-- 주문 상태 버튼 -->
+        <%
+            if(state == '1')
+            {
+        %>
+        <!-- 주문 시간 선택 -->
         <div class = "pad10l pad10r mg10t">
-            <div class = "order_btn">
-                <div class = "order_btn_text">확인</div>
+            <select name="due" id="due" title="주문소요시간" class="graySelect">
+                <option value="0">주문소요시간 선택</option>
+                <option value="10">10분</option>
+                <option value="20">20분</option>
+                <option value="30">30분</option>
+                <option value="40">40분</option>
+                <option value="50">50분</option>
+                <option value="60">60분</option>
+                <option value="70">70</option>
+            </select>
+        </div>
+        <%
+            }
+            else if(state == '2')
+            {
+        %>
+        <div class = "pad10l pad10r mg10t">
+            배달 완료 예정 시간 : <%=moment(duedate).format('YYYY-MM-DD HH:mm')%>
+        </div>
+        <%
+            }
+        %>
+
+        <!-- 주문 상태 버튼 -->
+        <div class = "pad10l pad10r mg10t" id = "seller<%=idx%>" onclick="updateState('<%=idx%>', '<%=state%>', '<%=phonenb%>', '<%=startdate%>', '<%=bobjid%>');">
+            <div class = "<%=css_txt%>">
+                <div class = "order_btn_text"><%=state_txt%></div>
             </div>
         </div>
     </div>

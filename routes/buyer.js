@@ -30,7 +30,7 @@ router.get(/^(?!api)\/mobile\/list/, function(req, res, next) {
         async.apply(buymsglog.selectFunction,user)
 
     ], function (err, buyers) {
-        console.log('BuyerSelect buyers : ' + JSON.stringify(buyers));
+
         // result now equals 'done'
         if (err)
         {
@@ -39,7 +39,8 @@ router.get(/^(?!api)\/mobile\/list/, function(req, res, next) {
         }
         else
         {
-            res.render(objname+'/list_mobile', {objname:objname, data:buyers, user:user, url:util.fullUrl(req)});
+
+            res.render(objname+'/list_mobile', {objname:objname, data:buyers, user:user, url:util.fullUrl(req), moment : moment});
         }
     });
 });
@@ -85,6 +86,7 @@ router.get(/^(?!api)\/mobile\/insert/, function(req, res, next) {
             data.title = seller.title;
             data.phonenb = phonenb;
             data.sobjid = seller.idx;
+            data.bobjid = buyer.idx;
             data.address = (buyer.address) ? buyer.address : "";
             console.log('data : ' + JSON.stringify(data));
             res.render(objname+'/insert_mobile', {objname : objname, data : data, error:{}, backurl:'', user:{}, url:util.fullUrl(req)});
@@ -191,6 +193,8 @@ function BuyerInsert (json, callback){
         var into = [json.phonenb, address, address];
         var query = "INSERT INTO "+objname+" (phonenb, address) VALUES (?, ?) ON DUPLICATE KEY UPDATE address = ? ";
         db.executeTransaction(query,into,function(err,result){
+            console.log('BuyerInsert err====>' + JSON.stringify(err));
+            console.log('BuyerInsert result====>' + JSON.stringify(result));
             if(err)
             {
                 var error = {file: __filename, code: -1001, description: err.toString()};
@@ -198,7 +202,7 @@ function BuyerInsert (json, callback){
             }
             else
             {
-                if(result.insertId)
+                if(result.insertId || result.affectedRows)
                 {
                     var ret = JSON.parse(JSON.stringify(json));
                     ret.idx = result.insertId;
@@ -206,8 +210,7 @@ function BuyerInsert (json, callback){
                 }
                 else
                 {
-                    var error = {file: __filename, code: -1019, description:ERROR["-1019"]};
-                    callback(error);
+                    callback(null,json);
                 }
             }
         });

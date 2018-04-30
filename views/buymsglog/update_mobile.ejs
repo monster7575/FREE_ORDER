@@ -15,10 +15,7 @@
         <!-- 주문 내용 -->
         <div class = "order_content_box">
             <div class = "order_content">
-            <span class = "order_content_text">짜장면 1개<br>
-            짬봉 1개 <br>
-            카드결제<br>
-            우아미가구 왼쪽출입구. <br><br>고추가루 가져다주세요.우아미가구 왼쪽출입구.</span>
+            <span class = "order_content_text"><%=data.content%></span>
             </div>
         </div>
 
@@ -26,11 +23,11 @@
 
         <!-- 주소 -->
         <div class = "order_content_box">
-            <div class="email_login">서울시 금천구 가산동 543-1 SK허브수 101동 506호</div>
+            <div class="email_login"><%=data.address%></div>
         </div>
         <div class = "gap20"></div>
 
-        <div style="text-align: center;">2018-04-05 13:59</div>
+        <div style="text-align: center;"><%=moment(data.regdate).format('YYYY-MM-DD HH:mm')%></div>
 
     </div>
 </div><!-- (e) #wrap -->

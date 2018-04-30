@@ -7,35 +7,48 @@
 
         $(function() {
 
-            $('.pointList').eq(0).on('click', function(){
-                location.href = '/srv/sellmsglog/mobile/update';
-            });
-            $('.pointList').eq(1).on('click', function(){
-                location.href = '/srv/sellmsglog/mobile/update';
-            });
+
         });
+
+        function view(idx) {
+            window.location.href = '/srv/sellmsglog/mobile/select/'+idx;
+        }
 
     </script>
 </head>
 <body>
 <div id="wrap">
 
+    <%
+
+    if(data.length == 0)
+    {
+    %>
     <div class="pointList">
+        발신 내역이 없습니다.
+    </div>
+    <%
+    }else
+    {
+        for(var i = 0 ; i < data.length ; i++)
+        {
+            var obj = data[i];
+            var idx = obj.idx;
+            var phonenb = obj.phonenb;
+            var regdate = moment(obj.regdate).format('YYYY-MM-DD HH:mm');
+
+    %>
+    <div class="pointList" onclick = "view('<%=idx%>')">
         <ul>
-            <li class="pointList_ttl">***-****-4153<span class="more_off"></span></li>
+            <li class="pointList_ttl"><%=phonenb%><span class="more_off"></span></li>
             <li><span></span></li>
         </ul>
-        <div class="pointList_regdate">2018-04-05 13:59</div>
+        <div class="pointList_regdate"><%=regdate%></div>
     </div>
-
-    <div class="pointList">
-        <ul>
-            <li class="pointList_ttl">***-****-9985<span class="more_off"></span></li>
-            <li><span></span></li>
-        </ul>
-        <div class="pointList_regdate">2018-04-05 13:59</div>
-    </div>
-
+    <%
+    }
+    }
+    %>
 </div><!-- (e) #wrap -->
 </body>
 </html>

@@ -16,13 +16,7 @@
         <div class = "order_content_box">
             <div class = "order_content">
             <span class = "order_content_text">
-                6월 전화주문 이벤트<br>
-                전화주문해서 결제해주시면<br>
-                200ml 콜라캔 1개 무료증정<br>
-                <br><br>
-                모바일주문많이 사용해주세요.
-                <br><br>
-                https://goo.gl/9yPWJG
+                <%=data.content%>
                 <br><br>
             </span>
             </div>
@@ -30,7 +24,7 @@
 
         <div class = "gap20"></div>
 
-        <div style="text-align: center;">2018-04-05 13:59</div>
+        <div style="text-align: center;"><%=moment(data.regdate).format('YYYY-MM-DD HH:mm')%></div>
 
     </div>
 </div><!-- (e) #wrap -->
