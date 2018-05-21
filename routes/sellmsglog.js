@@ -25,7 +25,7 @@ router.get(/^(?!api)\/mobile\/list/, function(req, res, next) {
         async.apply(selectFunction,user)
 
     ], function (err, sellers) {
-        console.log('Seller sellers : ' + JSON.stringify(sellers));
+        //console.log('Seller sellers : ' + JSON.stringify(sellers));
         // result now equals 'done'
         if (err)
         {
@@ -68,6 +68,45 @@ router.get(/^(?!api)\/mobile\/select\/(.*)/, function(req, res, next) {
 
     });
 });
+
+
+/**
+ * 발신 리스트 페이징 처리
+ */
+router.post('/api/list', function(req, res, next) {
+
+    var json = req.body;
+    var user = util.getCookieMobile(req);
+
+    var page = (json.page)? parseInt(json.page) : 1;
+    var cnt = (json.cnt)? parseInt(json.cnt) : 10;
+    var limit = cnt;
+    var offset = (page - 1) * cnt;
+    json.uobjid = user.uobjid;
+
+    if(json.uobjid)
+    {
+        var whereto = [json.uobjid, limit, offset];
+        var query = "SELECT a.idx as idx, a.regdate as regdate, b.phonenb as phonenb FROM "+objname+" a join buyer b on a.bobjid = b.idx \
+            where a.sobjid = ? order by a.idx desc limit ? offset ? ";
+        db.executeQuery(query,whereto,function(err, result) {
+            if (err)
+            {
+                ewinston.log("error",JSON.stringify(err));
+                res.render('common/error_mobile', {objname : objname, error:err, backurl:'', user:{}, url:util.fullUrl(req)});
+            }
+            else
+            {
+                res.render(objname+'/paging_mobile', {objname : objname, data : result.rows, error:{}, backurl:'', user:{}, url:util.fullUrl(req), moment : moment});
+            }
+        });
+    }
+    else
+    {
+        res.render('common/error_mobile', {objname : objname, error:{}, backurl:'', user:{}, url:util.fullUrl(req)});
+    }
+});
+
 
 router.post('/api/insert', function(req, res, next) {
 
@@ -141,7 +180,6 @@ function selectFunction(json, callback)
             }
             else
             {
-                console.log('selectFunction result : ' + JSON.stringify(result.rows));
                 callback(null, result.rows);
             }
         });

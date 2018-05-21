@@ -2,6 +2,7 @@ var express = require('express');
 var router = express.Router();
 
 var path = require('path');
+var Random = require("random-js");
 var async = require("async");
 var moment = require('moment');
 var objname = path.basename(__filename, '.js');
@@ -11,6 +12,7 @@ var db = require(cmd + "/common/db");
 var CONFIG = require(cmd + "/config").CONFIG;
 var ERROR = require(cmd + "/config").ERROR;
 var ewinston = require(cmd + "/common/ewinston");
+var sendmail = require(cmd + "/common/sendmail");
 var _ = require("underscore");
 var request = require("request");
 var RedisSMQ = require("rsmq");
@@ -26,6 +28,14 @@ router.get(/^(?!api)\/mobile\/regist/, function(req, res, next) {
 
 });
 
+/**
+ * 매장 비밀번호 찾기
+ */
+router.get(/^(?!api)\/mobile\/find/, function(req, res, next) {
+
+    res.render(objname+'/find_mobile', {objname : objname, error:'', backurl:'', user:{}, url:util.fullUrl(req)});
+
+});
 
 /**
  * 매장 기본 정보 수정
@@ -53,12 +63,173 @@ router.get(/^(?!api)\/mobile\/update/, function(req, res, next) {
     });
 });
 
+
+/**
+ * 매장 정보 업데이트 후 앱 데이터 갱신 deeplink
+ */
+router.post(/^(?!api)\/mobile\/update/, function(req, res, next) {
+
+    var user = util.getCookieMobile(req);
+    var json = req.body;
+
+    console.log('update  : ' + JSON.stringify(json));
+    async.waterfall([
+        async.apply(SellerSelectJoinData, json),
+        SellerUpdate,
+        SellerSelectByeDate,
+        SellerSelect
+    ], function (err, seller) {
+        if (err)
+        {
+            ewinston.log("error",JSON.stringify(err));
+            res.render('common/error_mobile', {objname : objname, error:err, backurl:'', user:{}, url:util.fullUrl(req)});
+        }
+        else
+        {
+            //res.render(objname+'/setting_mobile', {objname:objname, data:seller, user:user, url:util.fullUrl(req), moment : moment});
+            res.redirect('freeorder://action?name=update&uobjid='+seller.idx);
+        }
+    });
+});
+
 /**
  * 설정 메인
  */
 router.get(/^(?!api)\/mobile\/main\/setting/, function(req, res, next) {
 
-    res.render(objname+'/setting_mobile');
+
+    var user = util.getCookieMobile(req);
+
+    var json = {};
+    json.idx = user.uobjid;
+
+    async.waterfall([
+        async.apply(SellerSelect, json)
+    ], function (err, data) {
+        if (err)
+        {
+            ewinston.log("error",JSON.stringify(err));
+            res.render('common/error_mobile', {objname : objname, error:err, backurl:'', user:{}, url:util.fullUrl(req)});
+        }
+        else
+        {
+
+            res.render(objname+'/setting_mobile', {objname:objname, data:data, user:user, url:util.fullUrl(req), moment : moment});
+        }
+    });
+});
+
+
+/**
+ * 매장 등록 화면
+ */
+router.post(/^(?!api)\/mobile\/insert/, function(req, res, next) {
+
+    var user = util.getCookieMobile(req);
+    var json = req.body;
+    console.log('seller insert : ' + JSON.stringify(user));
+    console.log('seller json : ' + JSON.stringify(json));
+    var data = json;
+    res.render(objname+'/insert_mobile', {objname : objname, data : data, error:{}, backurl:'', user:{}, url:util.fullUrl(req)});
+});
+
+/**
+* 매장 회원가입 & 로그인
+*/
+router.get(/^(?!api)\/mobile\/login/, function(req, res, next) {
+
+    var user = util.getCookieMobile(req);
+    console.log('seller user : ' + JSON.stringify(user));
+
+    var json = {};
+    json.idx = user.uobjid;
+
+    async.waterfall([
+        async.apply(SellerSelect,json)
+    ], function (err, seller) {
+        console.log('seller : ' + JSON.stringify(seller));
+        // result now equals 'done'
+        if (err)
+        {
+            res.render(objname+'/login_mobile', {objname : objname, data : {}, error:{}, backurl:'', user:user, url:util.fullUrl(req)});
+        }
+        else
+        {
+            if(seller.idx)
+            {
+                res.cookie('uobjid',seller.idx,{ expires: new Date(253402300000000), httpOnly: true });
+                res.redirect('freeorder://action?name=go_main&uobjid='+seller.idx);
+            }
+            else
+            {
+                res.clearCookie('uobjid');
+                res.render(objname+'/login_mobile', {objname : objname, data : {}, error:{}, backurl:'', user:user, url:util.fullUrl(req)});
+            }
+        }
+    });
+});
+
+/**
+* 매장 등록
+*/
+router.post(/^(?!api)\/regist/, function(req, res, next) {
+
+    var user = util.getCookieMobile(req);
+    var json = req.body;
+
+    async.waterfall([
+        async.apply(SellerSelectJoinData,json)], function (err, json, seller) {
+        // result now equals 'done'
+        if (err)
+        {
+            ewinston.log("error",JSON.stringify(err));
+            res.render('common/error_mobile', {objname : objname, error:err, backurl:'', user:{}, url:util.fullUrl(req)});
+        }
+        else
+        {
+            if(seller)
+            {
+                //set cookie
+                res.cookie('uobjid',seller.idx,{ expires: new Date(253402300000000), httpOnly: true });
+                res.render('buyer/list_mobile', {objname : objname, data : seller, error:{}, backurl:'', user:{}, url:util.fullUrl(req)});
+            }
+            else
+            {
+                res.render(objname+'/insert_mobile', {objname : objname, data : json, error:{}, backurl:'', user:{}, url:util.fullUrl(req)});
+            }
+        }
+    });
+});
+
+/**
+ * 앱실행시 첫 진입 페이지
+ */
+router.post(/^(?!api)\/login/, function(req, res, next) {
+
+    var user = util.getCookieMobile(req);
+    var json = req.body;
+    console.log('seller insert : ' + JSON.stringify(user));
+    console.log('seller json : ' + JSON.stringify(json));
+
+    async.waterfall([
+        async.apply(SellerSelectJoinData, json),
+        SellerUpdate,
+        SellerSelectByeDate,
+        SellerInsert,
+        SellerSelect
+    ], function (err, seller) {
+        if (err)
+        {
+            ewinston.log("error",JSON.stringify(err));
+            res.render('common/error_mobile', {objname : objname, error:err, backurl:'', user:{}, url:util.fullUrl(req)});
+        }
+        else
+        {
+            //set cookie
+            res.cookie('uobjid',seller.idx,{ expires: new Date(253402300000000), httpOnly: true });
+            res.render('buyer/list_mobile', {objname : objname, data : seller, error:{}, backurl:'', user:{}, url:util.fullUrl(req)});
+        }
+    });
 
 });
 
@@ -82,9 +253,18 @@ router.post('/api/login', function(req, res, next) {
         else
         {
             //set cookie
-            res.cookie('uobjid',seller.idx,{ expires: new Date(253402300000000), httpOnly: true });
-            var ret = {result:1,error:"",data:[seller]};
-            console.log('ret : ' + JSON.stringify(ret));
+            //res.cookie('uobjid',seller.idx,{ expires: new Date(253402300000000), httpOnly: true });
+            //var ret = {result:1,error:"",data:[seller]};
+            //console.log('ret : ' + JSON.stringify(ret));
+            //res.send(ret);
+            var ret;
+            if(seller)
+            {
+                res.cookie('uobjid',seller.idx,{ expires: new Date(253402300000000), httpOnly: true });
+                ret = {result:1,error:"",data:[seller]};
+            }
+            else
+                ret = {result:-1,error:"",data:[]};
             res.send(ret);
         }
     });
@@ -97,7 +277,9 @@ router.post('/api/login', function(req, res, next) {
 router.post('/api/update', function(req, res, next) {
     var json = req.body;
 
-    console.log('update  : ' + JSON.stringify(json));
+
+  //  json.idx = (json.idx) ? json.idx : (user.idx) ? user.idx : -1;
+    console.log('updateupdateupdateupdateupdate  : ' + JSON.stringify(json));
     async.waterfall([
         async.apply(SellerSelectJoinData, json),
         SellerUpdate,
@@ -142,20 +324,6 @@ router.post('/api/shorturl', function(req, res, next) {
     });
 });
 
-router.post('/api/insert', function(req, res, next) {
-
-    var user = util.getCookieMobile(req);
-    var json = req.body;
-    console.log('seller insert : ' + JSON.stringify(user));
-    console.log('seller json : ' + JSON.stringify(json));
-
-
-    var data = json;
-
-
-    res.render(objname+'/insert_mobile', {objname : objname, data : data, error:{}, backurl:'', user:{}, url:util.fullUrl(req)});
-});
-
 router.post('/api/select', function(req, res, next) {
 
     var json = req.body;
@@ -172,14 +340,16 @@ router.post('/api/select', function(req, res, next) {
         if (err)
         {
             ewinston.log("info",JSON.stringify(err));
-            var ret = {result:-1,error:err.description,data:[]};
+            var ret = {result:err.code,error:err.description,data:[]};
             res.send(ret);
         }
         else
         {
             var ret;
             if(seller)
-                ret = (seller.useyn == 'Y') ?  {result:1,error:"",data:[seller]} : {result:-2,error:ERROR["-1010"],data:[]};        //useyn N인 경우 승인 미처리 alert
+            {
+                ret = {result:1,error:"",data:[seller]};
+            }
             else
                 ret = {result:-1,error:"",data:[]};
             res.send(ret);
@@ -187,24 +357,25 @@ router.post('/api/select', function(req, res, next) {
     });
 });
 
-router.post('/api/select/phonenb', function(req, res, next) {
+router.post('/api/select/idx', function(req, res, next) {
 
     var json = req.body;
-    //json.phonenb : phonenb
+    var user = util.getCookieMobile(req);
+
+    if(json.uobjid)
+        json.idx = json.uobjid;
+    else
+        json.idx = user.uobjid;
 
     console.log('AAAAAAAAAA : ' + JSON.stringify(json));
     async.waterfall([
-        async.apply(SellerSelectPhonenb,json),
-        SellerSelectJoinData,
-        function (item, data, callback)
+        async.apply(SellerSelect,json),
+        function (data, callback)
         {
-            item.gcmtoken = json.gcmtoken;
-            callback(null, item, data);
+          callback(null, json, data);
         },
-        SellerUpdate,
-        SellerSelectByeDate,
-        SellerSelect], function (err, seller) {
-        console.log('seller select json : ' + JSON.stringify(json));
+        SellerUpdate], function (err, json, seller) {
+        console.log('APP SELLER SELECLT : ' + JSON.stringify(json));
         // result now equals 'done'
         if (err)
         {
@@ -221,109 +392,65 @@ router.post('/api/select/phonenb', function(req, res, next) {
     });
 });
 
-/**
- * 매장 회원가입 & 로그인
- */
-router.get(/^(?!api)\/mobile\/login/, function(req, res, next) {
+router.post('/api/find', function(req, res, next) {
 
-    var user = util.getCookieMobile(req);
-    console.log('seller user : ' + JSON.stringify(user));
-
-    var json = {};
-    json.idx = user.uobjid;
-
+    var json = req.body;
+    console.log('FIND : ' + JSON.stringify(json));
+    json.auth = 'E';            //이메일 로그인 회원만 비번 찾기 가능
     async.waterfall([
-        async.apply(SellerSelect,json)
-    ], function (err, seller) {
-        console.log('seller : ' + JSON.stringify(seller));
+        async.apply(SellerSelect,json),
+        function(json, callback)
+        {
+              var data = {};
+              data.to = json.email;
+              var r = new Random();
+              var rpasswd = r.string(6);
+              data.newpassword = rpasswd;
+              data.idx = json.idx;
+              callback(null, data);
+        },
+        function(json, callback)
+        {
+            var query = "update "+objname+" set passwd = ? where idx = ?";
+            var upto = [json.newpassword, json.idx];
+            db.executeTransaction(query, upto, function(err,result){
+                if(err)
+                {
+                    var error = {file: __filename, code: -1001, description: err.toString()};
+                    callback(error);
+                }
+                else
+                {
+                    console.log('changed ' + result.changedRows + ' rows');
+                    callback(null, json);
+                }
+            });
+        },
+        sendMail], function (err, result) {
+        console.log('APP SELLER SELECLT : ' + JSON.stringify(result));
         // result now equals 'done'
         if (err)
         {
-            res.render(objname+'/login_mobile', {objname : objname, data : {}, error:{}, backurl:'', user:user, url:util.fullUrl(req)});
+            ewinston.log("info",JSON.stringify(err));
+            var ret = {result:-1,error:err.description,data:[]};
+            res.send(ret);
         }
         else
         {
-            if(seller.idx)
-            {
-                res.redirect('freeorder://action?name=go_main&phonenb='+seller.phonenb);
-            }
-            else
-            {
-                res.render(objname+'/login_mobile', {objname : objname, data : {}, error:{}, backurl:'', user:user, url:util.fullUrl(req)});
-            }
+            var ret = result;
+            res.send(ret);
         }
     });
 });
 
+router.post('/api/sendmail', function(req, res, next) {
 
-/**
- * 매장 등록
- */
-router.post(/^(?!api)\/regist/, function(req, res, next) {
-
-    var user = util.getCookieMobile(req);
     var json = req.body;
-
-    async.waterfall([
-        async.apply(SellerSelectJoinData,json)], function (err, json, seller) {
-        // result now equals 'done'
-        if (err)
-        {
-            ewinston.log("error",JSON.stringify(err));
-            res.render('common/error_mobile', {objname : objname, error:err, backurl:'', user:{}, url:util.fullUrl(req)});
-        }
-        else
-        {
-            if(seller)
-            {
-                //set cookie
-                res.cookie('uobjid',seller.idx,{ expires: new Date(253402300000000), httpOnly: true });
-                res.render('buyer/list_mobile', {objname : objname, data : seller, error:{}, backurl:'', user:{}, url:util.fullUrl(req)});
-            }
-            else
-            {
-                res.render(objname+'/insert_mobile', {objname : objname, data : json, error:{}, backurl:'', user:{}, url:util.fullUrl(req)});
-            }
-
-        }
-    });
-
-
-});
-
-/**
- * 매장 기본 정보 등록 (삭제???)
- */
-router.post(/^(?!api)\/login/, function(req, res, next) {
-
-    var user = util.getCookieMobile(req);
-    var json = req.body;
-    console.log('seller insert : ' + JSON.stringify(user));
-    console.log('seller json : ' + JSON.stringify(json));
-
-    async.waterfall([
-        async.apply(SellerSelectJoinData, json),
-        SellerUpdate,
-        SellerSelectByeDate,
-        SellerInsert,
-        SellerSelect
-    ], function (err, seller) {
-        if (err)
-        {
-            ewinston.log("error",JSON.stringify(err));
-            res.render('common/error_mobile', {objname : objname, error:err, backurl:'', user:{}, url:util.fullUrl(req)});
-        }
-        else
-        {
-            //set cookie
-            res.cookie('uobjid',seller.idx,{ expires: new Date(253402300000000), httpOnly: true });
-            res.render('buyer/list_mobile', {objname : objname, data : seller, error:{}, backurl:'', user:{}, url:util.fullUrl(req)});
-        }
+    sendmail.newPassword(json, function(result){
+        res.send(result);
     });
 
 });
-
-
 
 
 function SellerSelectJoinData (json, callback){
@@ -335,8 +462,8 @@ function SellerSelectJoinData (json, callback){
     var passwd = (json.passwd)? json.passwd : "-1";
 
     var whereto = (auth == 'E') ? [email, passwd] : [snsid, sns];
-
-    var query = (auth == 'E') ? "SELECT * FROM "+objname+" WHERE email = ? and passwd = ? " : "SELECT * FROM "+objname+" WHERE snsid = ? and sns = ? ";
+    //이메일 주소만 체크한거는 로그인시 이메일 오류인지 비밀 번호 오류인지 체크하기 위함
+    var query = (auth == 'E') ? "SELECT * FROM "+objname+" WHERE email = ? and auth = 'E'" : "SELECT * FROM "+objname+" WHERE snsid = ? and sns = ? and auth = 'S' ";
 
     db.executeQuery(query,whereto,function(err, result) {
         console.log('SellerSelectJoinData : ' + JSON.stringify(result));
@@ -349,7 +476,25 @@ function SellerSelectJoinData (json, callback){
         {
             if(result.rows.length > 0)
             {
-                callback(null, json, result.rows[0]);
+                if(auth == 'E')
+                {
+                    if(result.rows[0].email != email)
+                    {
+                        var error = {file: __filename, code: -1011, description: ERROR["-1011"]};
+                        callback(error);
+                    }
+                    else if(result.rows[0].passwd != passwd)
+                    {
+                        var error = {file: __filename, code: -1012, description: ERROR["-1012"]};
+                        callback(error);
+                    }
+                    else
+                        callback(null, json, result.rows[0]);
+                }
+                else
+                {
+                    callback(null, json, result.rows[0]);
+                }
             }
             else
             {
@@ -365,20 +510,31 @@ function SellerUpdate(json, data, callback){
     console.log('SellerUpdate json: ' + JSON.stringify(json));
     console.log('SellerUpdate data: ' + JSON.stringify(data));
 
-    if(data)
+    var idx = (json) ? json.idx : (data) ? data.idx : -1;
+    if(idx > 0)
     {
-        var idx = data.idx;
-        var whereas = '';
 
+        var whereas = '';
 
         if(json.title)
             whereas += " title = '"+ json.title +"', ";
+
+        if(json.attaches)
+        {
+            if(Array.isArray(json.attaches))
+                whereas += " attaches = '"+ json.attaches.join() +"', ";
+            else
+                whereas += " attaches = '"+ json.attaches +"', ";
+        }
 
         if(json.content)
             whereas += " content = '"+ json.content +"', ";
 
         if(json.cat)
             whereas += " cat = '"+ json.cat +"', ";
+
+        if(json.sec)
+            whereas += " sec = '"+ json.sec +"', ";
 
         if(json.phonenb)
             whereas += " phonenb = '"+ json.phonenb +"', ";
@@ -479,13 +635,6 @@ function SellerInsert (json, callback){
         if(json.passwd_chk)
             delete json.passwd_chk;
 
-        /*
-        if(!json.title)
-            json.title = " ";
-        if(!json.content)
-            json.content = " ";
-        */
-
         if(auth == 'E')
         {
             if(json.sns)
@@ -493,6 +642,9 @@ function SellerInsert (json, callback){
             if(json.snsid)
                 delete json.snsid;
         }
+
+        if(Array.isArray(json.attaches))
+            json.attaches= json.attaches.join();
 
         console.log('SellerInsert====>' + JSON.stringify(json));
 
@@ -518,16 +670,20 @@ function SellerInsert (json, callback){
                 }
             }
         });
+
     }
 }
 
 function SellerSelect(json, callback){
 
     console.log('SellerSelect json: ' + JSON.stringify(json));
+
+    var whereto = [];
+    var query = "";
     if(json.idx)
     {
-        var whereto = (json.idx) ? [json.idx] : (json.sobjid) ? [json.sobjid] : [-1];
-        var query = "SELECT * FROM "+objname+" WHERE idx = ?";
+        whereto = (json.idx) ? [json.idx] : (json.sobjid) ? [json.sobjid] : [-1];
+        query = "SELECT * FROM "+objname+" WHERE idx = ?";
         db.executeQuery(query,whereto,function(err, result) {
             if(err)
             {
@@ -538,7 +694,29 @@ function SellerSelect(json, callback){
             {
                 if(result.rows.length > 0)
                 {
-                    console.log('seller orw: ' + JSON.stringify(result.rows[0]));
+                    callback(null, result.rows[0]);                }
+                else
+                {
+                    var error = {file: __filename, code: -1009, description:ERROR["-1009"]};
+                    callback(error);
+                }
+            }
+        });
+    }
+    else if(json.email && json.title)               //비밀번호 찾기 경우인데 따로 함수 생성 하는게 나은가?????
+    {
+        whereto = [json.email, json.title.trim().replace(' ', '')];
+        query = "SELECT * FROM "+objname+" WHERE email = ? and REPLACE(TRIM(title), ' ', '') = ? and auth = 'E'";
+        db.executeQuery(query,whereto,function(err, result) {
+            if(err)
+            {
+                var error = {file: __filename, code: -1001, description: err.toString()};
+                callback(error);
+            }
+            else
+            {
+                if(result.rows.length > 0)
+                {
                     callback(null, result.rows[0]);
                 }
                 else
@@ -593,38 +771,6 @@ function SellerSelectPhonenb(json, callback){
 
 }
 
-
-function SellerSelectSnsid (json, callback){
-
-    var snsid = (json.snsid)? json.snsid : "-1";
-    var sns = (json.sns)? json.sns : "Z";
-
-    var whereto = [snsid, sns];
-
-    var query =  "SELECT * FROM "+objname+" WHERE snsid = ? AND sns = ?  ORDER BY idx DESC " ;
-
-    db.executeQuery(query,whereto,function(err, result) {
-        if(err)
-        {
-            var error = {file: __filename, code: -1001, description: err.toString()};
-            callback(error);
-        }
-        else
-        {
-            if(result.rows.length > 0)
-            {
-                callback(null, result.rows[0]);
-            }
-            else
-            {
-                var error = {file: __filename, code: -1009, description:ERROR["-1009"]};
-                callback(error);
-            }
-        }
-    });
-}
-
-
 function sendSellerPush (json, callback){
 
     var moduleName = "gcm";
@@ -649,6 +795,14 @@ function sendSellerPush (json, callback){
                 callback(error);
             }
         }
+    });
+}
+
+function sendMail(json, callback)
+{
+    sendmail.newPassword(json, function(result){
+        //res.send(result);
+        callback(null, result);
     });
 }
 

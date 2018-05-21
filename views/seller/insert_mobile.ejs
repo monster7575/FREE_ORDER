@@ -1,10 +1,52 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ko" lang="ko">
-<title>매장 기본정보 등록</title>
+<title>매장정보입력</title>
 <head>
     <%- partial('../common/header_mobile.ejs') %>
     <SCRIPT LANGUAGE="JavaScript">
         <!--
+
+        function DeleteImage(idx) {
+
+            var attaches =  $("input[name='attaches']");
+            var $input = $(attaches[idx]);
+            if($input.val().length > 0)
+            {
+                var bool = confirm('삭제하시겠습니까?');
+                if(bool)
+                {
+
+                    var val = $.trim($input.val());
+                    var uri = "/srv/upfile/api/delete?path="+encodeURIComponent(val);
+
+                    //console.log(uri);
+                    $.get(uri,function (ret) {
+
+                        console.log(ret);
+
+                        if(ret.result == 1)
+                        {
+
+                        }
+                        else
+                        {
+                            alert('삭제실패했습니다.' + ret.error);
+                        }
+
+                        $input.val('');
+                        if(idx == 0)
+                            $('#thumb1').removeAttr( "style" );
+                        else if(idx == 1)
+                            $('#thumb2').removeAttr( "style" );
+                        else if(idx == 2)
+                            $('#thumb3').removeAttr( "style" );
+                        else if(idx == 3)
+                            $('#thumb4').removeAttr( "style" );
+
+                    });
+                }
+            }
+        }
 
         $.fn.serializeObject = function () {
             "use strict";
@@ -16,31 +58,31 @@
         };
 
         $(function(){
+
             $("#mainForm").validate({
                 rules: {
-                    email: {
-                        required: true,
-                        email: true
-                    },
-                    passwd: {
+                    title: {
                         required: true
                     },
-                    passwd_chk: {
-                        required: true,
-                        equalTo: '#passwd'
+                    cat: {
+                        selectcheck: true
+                    },
+                    sec: {
+                        selectcheck_sec: true
+                    },
+                    content: {
+                        required: true
                     }
                 },
                 messages: {
-                    email: {
-                        required:"이메일 주소를 정확하게 입력해주세요.",
-                        email:"이메일 주소를 정확하게 입력해주세요."
+                    title: {
+                        required:"매장명을 입력해주세요."
                     },
-                    passwd: {
-                        required:"비밀번호를 입력해주세요."
+                    cat: {
+                        required:"업종을 선택하세요."
                     },
-                    passwd_chk: {
-                        required:"비밀번호를 재 입력해주세요.",
-                        equalTo:"비밀번호 동일하지 않습니다. 재 입력해주세요."
+                    content: {
+                        required:"메세지를 입력하세요."
                     }
                 },
                 errorPlacement: function(error, element) {
@@ -52,10 +94,83 @@
                         alert(validator.errorList[0].message);
                         validator.errorList[0].element.focus();
                     }
+                },
+                submitHandler: function(form){
+
+                    var bool = confirm('매장정보를 등록하시겠습니까?');
+                    if(bool) {
+                        var url = "/srv/seller/api/login";
+                        var data = $("#mainForm").serializeObject();
+
+                        var attachesLen =  $("input[name='attaches']").length;
+
+                        var attaches = [];
+                        $("input[name=attaches]").each(function(idx){
+
+                            // 해당 체크박스의 Value 가져오기
+                            var value = $(this).val();
+
+                            var eqValue = $("input[name=attaches]:eq(" + idx + ")").val() ;
+                            attaches.push(eqValue);
+
+                            console.log(value + ":" + eqValue) ;
+                            console.log("attaches :" + attaches.join(","));
+                            data.attaches = attaches.join(",");
+                            if(idx == attachesLen-1)
+                            {
+
+                                $.ajax({
+                                    type: 'POST',
+                                    contentType: 'application/x-www-form-urlencoded',
+                                    url: url,
+                                    data : data,
+                                    success: function(res) {
+                                        var result = res.result;
+                                        console.log('result : ' + JSON.stringify(res));
+                                        window.location.replace('freeorder://action?name=go_main&uobjid='+res.data[0].idx);
+                                    },
+                                    error: function(){
+
+                                    }
+                                });
+                            }
+                        });
+                    }
+
+                }
+            });
+
+            jQuery.validator.addMethod('selectcheck', function (value) {
+                return (value != 'Z');
+            }, "업종을 선택해주세요.");
+
+            jQuery.validator.addMethod('selectcheck_sec', function (value) {
+                return (value != 0);
+            }, "시간을 선택해주세요.");
+
+            $("#attache").click(function() {
+
+                if($('#thumb1').attr('style') && $('#thumb2').attr('style') && $('#thumb3').attr('style') && $('#thumb4').attr('style'))
+                {
+                    alert('더 이상 이미지 업로드가 불가합니다.');
+                }
+                else
+                    window.location.replace('freeorder://action?name=gallery');
+            });
+
+            $(".email_regist").click(function() {
+                    formSubmit();
+            });
+
+            $(".email_login").click(function() {
+                var bool = confirm('종료하시겠습니까?');
+                if(bool) {
+                    window.location.replace('freeorder://action?name=finish');
                 }
             });
 
             window.location.replace('freeorder://action?name=get_seller');
+
 
         });
 
@@ -66,35 +181,47 @@
             console.log('token : ' + token);
             $('#phonenb').val(phonenb);
             $('#gcmtoken').val(token);
-            alert(JSON.stringify(phonenb + '-' + token));
+
+            window.location.replace('freeorder://action?name=stop_loading');
+
+        }
+
+        //by use native
+        function setImg(path)
+        {
+            var src = 'http://order.favinet.co.kr/html' + path;
+            var attaches =  $("input[name='attaches']");
+
+            if($('#thumb1').attr('style') === undefined)
+            {
+                $('#thumb1').css({"background": "url("+src+")", 'background-repeat' : 'no-repeat', 'background-position':'center center', 'background-size' : 'contain'});
+                $(attaches[0]).val(path);
+            }
+            else if($('#thumb2').attr('style') === undefined)
+            {
+                $('#thumb2').css({"background": "url("+src+")", 'background-repeat' : 'no-repeat', 'background-position':'center center', 'background-size' : 'contain'});
+                $(attaches[1]).val(path);
+            }
+            else if($('#thumb3').attr('style') === undefined)
+            {
+                $('#thumb3').css({"background": "url("+src+")", 'background-repeat' : 'no-repeat', 'background-position':'center center', 'background-size' : 'contain'});
+                $(attaches[2]).val(path);
+            }
+            else
+            {
+                $('#thumb4').css({"background": "url("+src+")", 'background-repeat' : 'no-repeat', 'background-position':'center center', 'background-size' : 'contain'});
+                $(attaches[3]).val(path);
+            }
         }
 
         function formSubmit(){
 
-
-
-            var url = "/srv/seller/api/login";
-            var data = $("#mainForm").serializeObject();
-
-            alert(JSON.stringify(data));
-
-            $.ajax({
-                type: 'POST',
-                contentType: 'application/x-www-form-urlencoded',
-                url: url,
-                data : data,
-                success: function(res) {
-                    var result = res.result;
-                    console.log('result : ' + JSON.stringify(result));
-                    if(result == 1)
-                    {
-                        window.location.replace('freeorder://action?name=go_main');
-                    }
-                },
-                error: function(){
-
-                }
-            });
+            //return document.mainForm.submit();
+            if (!$("#mainForm").validate()) {
+                return false;
+            } else {
+                $("#mainForm").submit();
+            }
         }
 
         //-->
@@ -103,75 +230,96 @@
 <body>
 
 <div id="wrap">
-    <form method="POST" action="<%=CMS.proxypath%>/srv/<%=objname%>/insert" name = "mainForm"  id="mainForm">
+    <form method="POST" action="#" name = "mainForm"  id="mainForm">
         <input type = "hidden" name = "email" id = "email" value = "<%=data.email%>" />
         <input type = "hidden" name = "passwd" id = "passwd" value = "<%=data.passwd%>" />
         <input type = "hidden" name = "phonenb" id = "phonenb" value = "<%=data.phonenb%>" />
-        <input type = "hidden" name = "gcmtoken" id = "gcmtoken" value = "<%=data.token%>" />
+        <input type = "hidden" name = "gcmtoken" id = "gcmtoken" value = "<%=data.gcmtoken%>" />
         <input type = "hidden" name = "auth" id = "auth" value = "<%=data.auth%>" />
         <input type = "hidden" name = "sns" id = "sns" value = "<%=data.sns%>" />
         <input type = "hidden" name = "snsid" id = "snsid" value = "<%=data.snsid%>" />
-    <div id="subConts">
+        <div id="subConts">
 
-        <div id="settingConts">
-            <table class="tblType">
-                <colgroup> <col style="width:25%;"> <col style="width:75%;"> </colgroup>
-                <tbody>
-                <tr>
-                    <th>매장명</th>
-                    <td>
-                        <input id="title" type="text" name="title" placeholder = "매장명을 입력하세요." class = "seller_title_input">
-                    </td>
-                </tr>
-                <tr>
-                    <th>업종</th>
-                    <td>
-                        <select name="cat" id="cat" title="업종 선택" class="graySelect">
-                            <option value="Z">업종 선택</option>
-                            <option value="A">한식</option>
-                            <option value="B">분식</option>
-                            <option value="C">돈까스.회.일식</option>
-                            <option value="D">치킨</option>
-                            <option value="E">피자</option>
-                            <option value="F">중국집</option>
-                            <option value="G">족발.보쌈</option>
-                            <option value="H">야식</option>
-                            <option value="I">찜.탕</option>
-                            <option value="J">도시락</option>
-                            <option value="K">카페.디저트</option>
-                            <option value="L">패스트푸드</option>
-                            <option value="M">프렌차이즈</option>
-                        </select>
-                    </td>
-                </tr>
-                <tr>
-                    <th>메세지</th>
-                    <td>
-                        <textarea cols="10" rows="10" class="sellerintextarea" id="content" name="content"></textarea>
-                    </td>
-                </tr>
-                <tr>
-                    <th>사진</th>
-                    <td>
-                        <input id="attaches" type="file" name="attaches">
-                    </td>
-                </tr>
-                <tr>
-                    <td colspan="2">
-                        <div id = "thumb4" class = "thumb2"></div>
-                        <div id = "thumb3" class = "thumb2"></div>
-                        <div id = "thumb2" class = "thumb2"></div>
-                        <div id = "thumb1" class = "thumb1"></div>
-                    </td>
-                </tr>
-            </tbody>
-            </table>
-            <div class="gap20"></div>
-            <div class="email_regist" id = "email_regist"><a href="javascript:formSubmit();">저장</a></div>
-            <div class="email_login"><a href="javascript:history.back();" id="seller_cancel">취소</a></div>
-    </div>
-    </div>
-</form>
+            <div id="settingConts">
+                <table class="tblType">
+                    <colgroup> <col style="width:25%;"> <col style="width:75%;"> </colgroup>
+                    <tbody>
+                    <tr>
+                        <th>매장명</th>
+                        <td>
+                            <input id="title" type="text" name="title" placeholder = "매장명을 입력하세요." class = "seller_title_input">
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>업종</th>
+                        <td>
+                            <select name="cat" id="cat" title="업종을 선택해주세요." class="graySelect">
+                                <option value="Z">업종 선택</option>
+                                <option value="A">한식</option>
+                                <option value="B">분식</option>
+                                <option value="C">돈까스.회.일식</option>
+                                <option value="D">치킨</option>
+                                <option value="E">피자</option>
+                                <option value="F">중국집</option>
+                                <option value="G">족발.보쌈</option>
+                                <option value="H">야식</option>
+                                <option value="I">찜.탕</option>
+                                <option value="J">도시락</option>
+                                <option value="K">카페.디저트</option>
+                                <option value="L">패스트푸드</option>
+                                <option value="M">프렌차이즈</option>
+                            </select>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>통화대기</th>
+                        <td>
+                            <select name="sec" id="sec" title="통화 대기 시간을 선택하세요." class="graySelect">
+                                <option value="0">선택하세요</option>
+                                <option value="3">3초</option>
+                                <option value="5">5초</option>
+                                <option value="10">10초</option>
+                                <option value="12">12초</option>
+                                <option value="15">15초</option>
+                                <option value="20">20초</option>
+                                <option value="25">25초</option>
+                            </select>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>메세지</th>
+                        <td>
+                            <textarea cols="10" rows="10" class="sellerintextarea" id="content" name="content" placeholder = "주문안내 및 각종이벤트 내용을
+50자 이상 입력하세요."></textarea>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>사진</th>
+                        <td>
+                            <button class="replace">업로드</button>
+                            <input id="attache" type="file" name="attache" class = "upload">
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="2">
+                            <div id = "thumb4" class = "thumb2" onclick = "javascript:DeleteImage(3);"></div>
+                            <div id = "thumb3" class = "thumb2" onclick = "javascript:DeleteImage(2);"></div>
+                            <div id = "thumb2" class = "thumb2" onclick = "javascript:DeleteImage(1);"></div>
+                            <div id = "thumb1" class = "thumb1" onclick = "javascript:DeleteImage(0);"></div>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+                <div class="gap20"></div>
+                <div class="email_regist" id = "email_regist"><a href = "#">저장</a></div>
+                <div class="email_login">취소</div>
+                <input type="hidden" class="input-default w100p" name="attaches" id="attaches"/>
+                <input type="hidden" class="input-default w100p" name="attaches" id="attaches">
+                <input type="hidden" class="input-default w100p" name="attaches" id="attaches"/>
+                <input type="hidden" class="input-default w100p" name="attaches" id="attaches"/>
+            </div>
+        </div>
+    </form>
 </div><!-- (e) #wrap -->
 
 </body>

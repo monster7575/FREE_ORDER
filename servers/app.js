@@ -5,6 +5,7 @@ var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
 var engine = require('ejs-locals');
 var useragent = require('express-useragent');
+var multer  = require('multer');
 var session = require('express-session');
 
 var index = require('../routes/index');
@@ -13,8 +14,13 @@ var seller = require('../routes/seller');
 var goods = require('../routes/goods');
 var sellmsglog = require('../routes/sellmsglog');
 var buymsglog = require('../routes/buymsglog');
+var upfile = require('../routes/upfile');
+var geo = require('../routes/geo');
 
 var app = express();
+var upload = multer({dest: '/opt/touchdown/html/upload',
+  storage: multer.memoryStorage({})});
+
 // view engine setup
 app.engine('ejs',engine);
 app.set('views', path.join(__dirname, '../views'));
@@ -40,7 +46,8 @@ app.use('/srv/seller', seller);
 app.use('/srv/goods', goods);
 app.use('/srv/sellmsglog', sellmsglog);
 app.use('/srv/buymsglog', buymsglog);
-
+app.use('/srv/upfile', upload.single('Filedata'), upfile);
+app.use('/srv/geo', geo);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {

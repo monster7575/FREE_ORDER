@@ -3,6 +3,7 @@ var CONFIG = {
     WWW : {PROTOCOL:"HTTP", HOST : "localhost", PORT:3000 },
     API : {PROTOCOL:"HTTPS", HOST : "www.googleapis.com", PORT:443 },
     RSMQ : {HOST: "127.0.0.1", PORT: 6379, NAMESPACE:"rsmq"},
+    SMTP : {PROTOCOL:"SMTP", HOST:"app.touch-down.co.kr"},
     MYSQLS : [
         {HOST:"211.39.147.216", PORT:3306, USER:"touchdown", PASSWORD:"dpswhs123!@#", DATABASE:"test", ROLE:"MASTER"},
         {HOST:"211.39.147.216", PORT:3306, USER:"touchdown", PASSWORD:"dpswhs123!@#", DATABASE:"test", ROLE:"SLAVE"}
@@ -21,6 +22,8 @@ var ERROR = {
     "-1007":"GET,POST 파라미터가 정의되지 않았습니다.",
     "-1009":"데이터를 찾을수 없습니다.",
     "-1010":"매장 승인 전입니다. 관리자에게 문의하여 주세요.",
+    "-1011":"가입한 이메일이 없습니다.",
+    "-1012":"비밀번호 에러입니다.",
     "-1019":"DB 저장 혹은 수정이 되지 않았습니다."
 
 };

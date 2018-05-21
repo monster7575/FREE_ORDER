@@ -26,10 +26,25 @@ router.get(/^(?!api)\/mobile\/list/, function(req, res, next) {
 
     var user = util.getCookieMobile(req);
 
-    async.waterfall([
-        async.apply(buymsglog.selectFunction,user)
+    console.log('IP : ' + req.ip);
 
-    ], function (err, buyers) {
+    var data = {};
+
+    async.waterfall([
+        async.apply(buymsglog.selectFunction,user),
+        function (json, callback)
+        {
+            data.buyers = json;
+            user.idx = user.uobjid;
+            callback(null, user);
+        },
+        seller.SellerSelect,
+        function (json, callback)
+        {
+            data.seller = json;
+            callback(null, data);
+        }
+    ], function (err, data) {
 
         // result now equals 'done'
         if (err)
@@ -39,8 +54,8 @@ router.get(/^(?!api)\/mobile\/list/, function(req, res, next) {
         }
         else
         {
-
-            res.render(objname+'/list_mobile', {objname:objname, data:buyers, user:user, url:util.fullUrl(req), moment : moment});
+            console.log('CCCCCCCCCCCCCCCCCCC' + JSON.stringify(data));
+            res.render(objname+'/list_mobile', {objname:objname, data:data, user:user, url:util.fullUrl(req), moment : moment});
         }
     });
 });
@@ -88,6 +103,7 @@ router.get(/^(?!api)\/mobile\/insert/, function(req, res, next) {
             data.sobjid = seller.idx;
             data.bobjid = buyer.idx;
             data.address = (buyer.address) ? buyer.address : "";
+            data.address2 = (buyer.address2) ? buyer.address2 : "";
             console.log('data : ' + JSON.stringify(data));
             res.render(objname+'/insert_mobile', {objname : objname, data : data, error:{}, backurl:'', user:{}, url:util.fullUrl(req)});
         }
@@ -138,6 +154,44 @@ router.post('/api/select', function(req, res, next) {
     });
 });
 
+/**
+ * 주문 리스트 페이징 처리
+ */
+router.post('/api/list', function(req, res, next) {
+
+    var json = req.body;
+    var user = util.getCookieMobile(req);
+    console.log('list paaging  : ' + JSON.stringify(json));
+
+    console.log('list paaging  user : ' + JSON.stringify(user));
+
+    var page = (json.page)? parseInt(json.page) : 1;
+    var cnt = (json.cnt)? parseInt(json.cnt) : 10;
+    var limit = cnt;
+    var offset = (page - 1) * cnt;
+    json.uobjid = user.uobjid;
+
+    if(json.uobjid)
+    {
+        var whereto = [json.uobjid, limit, offset];
+        var query = "SELECT a.*, b.phonenb as phonenb FROM buymsglog a join buyer b on a.bobjid = b.idx WHERE a.sobjid = ? order by a.idx desc limit ? offset ? ";
+        db.executeQuery(query,whereto,function(err, result) {
+            if (err)
+            {
+                ewinston.log("error",JSON.stringify(err));
+                res.render('common/error_mobile', {objname : objname, error:err, backurl:'', user:{}, url:util.fullUrl(req)});
+            }
+            else
+            {
+                res.render(objname+'/paging_mobile', {objname : objname, data : result.rows, error:{}, backurl:'', user:{}, url:util.fullUrl(req), moment : moment});
+            }
+        });
+    }
+    else
+    {
+        res.render('common/error_mobile', {objname : objname, error:{}, backurl:'', user:{}, url:util.fullUrl(req)});
+    }
+});
 
 router.post('/api/insert', function(req, res, next) {
 
@@ -190,8 +244,10 @@ function BuyerInsert (json, callback){
             delete json.title;
 
         var address = (json.address) ? json.address : "";
-        var into = [json.phonenb, address, address];
-        var query = "INSERT INTO "+objname+" (phonenb, address) VALUES (?, ?) ON DUPLICATE KEY UPDATE address = ? ";
+        var address2 = (json.address2) ? json.address2 : "";
+
+        var into = [json.phonenb, address, address2, address, address2];
+        var query = "INSERT INTO "+objname+" (phonenb, address, address2) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE address = ?, address2 = ? ";
         db.executeTransaction(query,into,function(err,result){
             console.log('BuyerInsert err====>' + JSON.stringify(err));
             console.log('BuyerInsert result====>' + JSON.stringify(result));

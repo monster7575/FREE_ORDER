@@ -11,7 +11,8 @@
                 location.href = '/srv/seller/mobile/update';
             });
             $('.seller_menu_info').on('click', function(){
-                location.href = '/srv/goods/mobile/list';
+                alert('준비중입니다.');
+               // location.href = '/srv/goods/mobile/list';
             });
 
             $('.sellermsglog').on('click', function(){
@@ -21,6 +22,8 @@
             $('.buymsglog').on('click', function(){
                 location.href = '/srv/buymsglog/mobile/list';
             });
+
+            window.location.replace('freeorder://action?name=setTopMenu&params={"backBt":"Y"}');
         });
 
     </script>
@@ -28,12 +31,21 @@
 <body>
 <div id="wrap">
     <div class="setting_theme">
+        <%if(data.useyn == 'Y'){%>
         <ul>
             <li class = "seller_info">기본정보<span class="more_off"></span></li>
             <li class = "seller_menu_info">메뉴정보<span class="more_off"></span></li>
             <li class = "sellermsglog">발신내역<span class="more_off"></span></li>
             <li class = "buymsglog">수신내역<span class="more_off"></span></li>
         </ul>
+        <%}else{%>
+
+        <div style = "text-align: center;height:100%;margin-top: 70%;font-size: 1.2rem">
+
+            매장 승인 전입니다. <br /><br />관리자에게 문의하여 주세요.
+
+        </div>
+        <%}%>
     </div>
 
 </div>

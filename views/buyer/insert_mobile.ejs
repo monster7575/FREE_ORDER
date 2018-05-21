@@ -1,8 +1,9 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ko" lang="ko">
-<title>주문/ 등록</title>
+<title>모바일주문</title>
 <head>
     <%- partial('../common/header_mobile.ejs') %>
+
     <SCRIPT LANGUAGE="JavaScript">
         <!--
 
@@ -16,46 +17,160 @@
         };
 
         $(function(){
-            $("#mainForm").validate({
-                rules: {
-                    content: {
-                        required: true
-                    },
-                    address: {
-                        required: true
-                    }
-                },
-                messages: {
-                    content: {
-                        required:"주문 내용을 입력해주세요."
-                    },
-                    address: {
-                        required:"주소를 입력해주세요."
-                    }
-                },
-                errorPlacement: function(error, element) {
-                    // do nothing
-                },
-                invalidHandler: function(form, validator) {
-                    var errors = validator.numberOfInvalids();
-                    if (errors) {
-                        alert(validator.errorList[0].message);
-                        validator.errorList[0].element.focus();
-                    }
+
+
+            $("#order_send").click(function() {
+                formSubmit();
+            });
+
+            $("#order_cancel").click(function() {
+               window.close();
+            });
+
+
+            $("#getBuyer").click(function() {
+                getBuyer();
+            });
+
+            $('.icon_loc').click(function() {
+                var bool = confirm('현재 주소를 가져오시겠습니까?');
+                if (bool) {
+                    tryGeolocation();
                 }
             });
 
         });
 
+        var apiGeolocationSuccess = function(position) {
+            console.log("API geolocation success!\n\nlat = " + position.coords.latitude + "\nlng = " + position.coords.longitude);
+
+            jQuery.post( "https://maps.googleapis.com/maps/api/geocode/json?latlng="+position.coords.latitude+","+position.coords.longitude+"&key=AIzaSyDOOV45qBX6CYl4WHwE7w2qTbmA6IQXHOU", function(success) {
+                        // console.log(JSON.stringify(success.results[0].address_components[2].short_name));
+                        //alert('formatted_address : ' + success.results[0].formatted_address);
+
+                        $('#address').val(success.results[0].address_components[3].short_name+" " + success.results[0].address_components[2].short_name);
+                    })
+                    .fail(function(err) {
+                        alert("API Geolocation error! \n\n"+err);
+                    });
+        };
+
+
+
+        var tryAPIGeolocation = function() {
+            jQuery.post( "https://www.googleapis.com/geolocation/v1/geolocate?key=AIzaSyAPwkfp5q9LdxRlji73e-zzVw7OuMgWsDM", function(success) {
+                     //   alert("API Geolocation success! \n\n"+JSON.stringify(success));
+                        apiGeolocationSuccess({coords: {latitude: success.location.lat, longitude: success.location.lng}});
+                    })
+                    .fail(function(err) {
+                        alert("API Geolocation error! \n\n"+JSON.stringify(err));
+                    });
+        };
+
+        var browserGeolocationSuccess = function(position) {
+            console.log("Browser geolocation success!\n\nlat = " + position.coords.latitude + "\nlng = " + position.coords.longitude);
+
+            alert('GOOGLE!' + 'lat = ' + position.coords.latitude + "\nlng = " + position.coords.longitude);
+            //navigator.geolocation.watchPosition(function(position) { console.log('watchPosition : '+position.coords.latitude, position.coords.longitude); });
+            apiGeolocationSuccess(position);
+        };
+
+        var browserGeolocationFail = function(error) {
+            console.log('browserGeolocationFail : ' + error.code);
+            switch (error.code) {
+                case error.TIMEOUT:
+                    alert("Browser geolocation error !\n\nTimeout.");
+                    break;
+                case error.PERMISSION_DENIED:
+                    if(error.message.indexOf("Only secure origins are allowed") == 0) {
+                        // tryAPIGeolocation();
+                        console.log('browserGeolocationFail : ' + error.message);
+
+
+                        alert('정확한 위치를 가져올 수 없습니다.\n 상세 주소란에 입력하여주세요.');
+                        /*
+                        $.getJSON("https://api.ipify.org?format=jsonp&callback=?",
+                                function(json) {
+                                    var ip = json.ip;
+                                    getAddress(ip)
+                                }
+                        );
+                        */
+
+
+                    }
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    alert("Browser geolocation error !\n\nPosition unavailable.");
+                    break;
+            }
+        };
+
+        var tryGeolocation = function() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                        browserGeolocationSuccess,
+                        browserGeolocationFail,
+                        {maximumAge: 50000, timeout: 20000, enableHighAccuracy: true});
+            }
+            else
+                alert('geo not ');
+        };
+
+        var pageNum = 1;
+        function getBuyer()
+        {
+            var url = "/srv/buymsglog/api/list/previous";
+            var data = {bobjid : $('#bobjid').val(), page : pageNum};
+
+            $.ajax({
+                type: 'POST',
+                contentType: 'application/x-www-form-urlencoded',
+                url: url,
+                data : data,
+                success: function(res) {
+                    var result = res.result;
+                    if(result == 1)
+                    {
+                        pageNum = pageNum + 1;
+                        $('#content').html('');
+                        $('#content').html(res.data.content);
+                        $('#address').val(res.data.address);
+                        $('#address2').val(res.data.address2);
+
+                    }
+                    else
+                    {
+                        alert('이전 주문이 없습니다.');
+                    }
+                },
+                error: function(){
+
+                }
+            });
+        }
 
         function formSubmit(){
-            //return document.mainForm.submit();
-            if (!$("#mainForm").validate()) {
-                return false;
-            } else {
 
+            if($('#content').val().length == 0)
+            {
+                alert('주문 내용을 입력해주세요');
+                $('#content').focus();
+                return false;
+            }
+            else if($('#address').val().length == 0 && $('#address2').val().length == 0)
+            {
+                alert('주소를 입력해주세요.');
+                $('#address').focus();
+                return false;
+            }
+            else
+            {
                 var url = "/srv/buyer/api/insert";
                 var data = $("#mainForm").serializeObject();
+
+                data.address = $('#address').val();
+                data.address2 = $('#address2').val();
 
                 $.ajax({
                     type: 'POST',
@@ -67,8 +182,8 @@
                         console.log('result : ' + JSON.stringify(result));
                         if(result == 1)
                         {
-                           alert('주문이 완료되었습니다.');
-                            $("#email_regist").remove();
+                            alert('주문이 완료되었습니다.');
+                            $("#order_send").remove();
                         }
                         else
                         {
@@ -80,6 +195,32 @@
                     }
                 });
             }
+
+        }
+
+        function getAddress(ip)
+        {
+            var url = "/srv/geo/api/geo";
+            var data = {ip : ip};
+
+            $.ajax({
+                type: 'POST',
+                contentType: 'application/x-www-form-urlencoded',
+                url: url,
+                data : data,
+                success: function(res) {
+                    console.log('res : ' + JSON.stringify(res));
+                    var address = "<%=data.address%>";
+                    console.log('address : ' + JSON.stringify(address));
+
+                    $('#address').val('');
+                    $('#address').val(res.geoLocation.r1 + " " + res.geoLocation.r2);
+
+                },
+                error: function(){
+
+                }
+            });
         }
 
         //-->
@@ -91,7 +232,7 @@
     <form method="POST" action="#" name = "mainForm"  id="mainForm">
 
         <div id="subConts">
-
+            <div class="email_regist" id = "getBuyer"><a href="#">이전 주문</a></div>
             <div id="settingConts">
                 <table class="tblType">
                     <colgroup> <col style="width:25%;"> <col style="width:75%;"> </colgroup>
@@ -110,17 +251,21 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>주소</th>
+                        <th>주소<span style = "margin-left: 10px;"></span><img src = "http://order.favinet.co.kr/html/fo/img/sub/icon_loc.jpg" class="icon_loc" style = "width:30px;height:30px;"/></th>
                         <td>
-                            <input id="address" type="text" name="address" placeholder = "주소를 입력하세요." class = "seller_title_input" value="<%=data.address%>">
+                            <input id="address" type="text" name="address" placeholder = "좌측 아이콘을 터치 해주세요." class = "seller_title_input input_disabled" value="<%=data.address%>" readonly>
                         </td>
                     </tr>
-
+                    <tr>
+                        <td colspan="2">
+                            <input id = "address2" type="text" name="address2" placeholder = "상세 주소를 입력하세요." class = "seller_title_input" value="<%=data.address2%>">
+                        </td>
+                    </tr>
                     </tbody>
                 </table>
                 <div class="gap20"></div>
-                <div class="email_regist" id = "email_regist"><a href="javascript:formSubmit();">저장</a></div>
-                <div class="email_login"><a href="javascript:history.back();" id="seller_cancel">취소</a></div>
+                <div class="email_regist" id = "order_send"><a href="#">주문하기</a></div>
+                <div class="email_login"><a href="#" id="order_cancel">취소</a></div>
             </div>
         </div>
         <input type = "hidden" name = "phonenb" id = "phonenb" value = "<%=data.phonenb%>" />

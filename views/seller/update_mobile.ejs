@@ -1,4 +1,8 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<%
+var attaches = (data.attaches == null) ? [] : data.attaches.split(",");
+console.log(attaches);
+%>
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ko" lang="ko">
 <title>매장 기본정보 수정</title>
 <head>
@@ -8,14 +12,51 @@
 
     <script type="text/javascript">
 
-        $.fn.serializeObject = function () {
-            "use strict";
-            var a = {}, b = function (b, c) {
-                var d = a[c.name];
-                "undefined" != typeof d && d !== null ? $.isArray(d) ? d.push(c.value) : a[c.name] = [d, c.value] : a[c.name] = c.value
-            };
-            return $.each(this.serializeArray(), b), a
-        };
+
+        function DeleteImage(idx) {
+
+            var attaches =  $("input[name='attaches']");
+            var $input = $(attaches[idx]);
+            console.log($input.val());
+            if($input.val().length > 0)
+            {
+                var bool = confirm('삭제하시겠습니까?');
+                if(bool)
+                {
+
+                    var val = $.trim($input.val());
+                    var uri = "/srv/upfile/api/delete?path="+encodeURIComponent(val);
+
+                    //console.log(uri);
+                    $.get(uri,function (ret) {
+
+                        console.log(ret);
+
+                        if(ret.result == 1)
+                        {
+
+                        }
+                        else
+                        {
+                            alert('삭제실패했습니다.' + ret.error);
+                        }
+
+                        $input.val('');
+                        if(idx == 0)
+                            $('#thumb1').removeAttr( "style" );
+                        else if(idx == 1)
+                            $('#thumb2').removeAttr( "style" );
+                        else if(idx == 2)
+                            $('#thumb3').removeAttr( "style" );
+                        else if(idx == 3)
+                            $('#thumb4').removeAttr( "style" );
+
+                        sellerUpdate();
+
+                    });
+                }
+            }
+        }
 
         $(function() {
 
@@ -23,32 +64,193 @@
                 formSubmit();
             });
 
+            $(".email_login").click(function() {
+                window.history.back(-1);
+            });
+
+            $("#attache").click(function() {
+
+                if($('#thumb1').attr('style') && $('#thumb2').attr('style') && $('#thumb3').attr('style') && $('#thumb4').attr('style'))
+                {
+                    alert('더 이상 이미지 업로드가 불가합니다.');
+                }
+                else
+                    window.location.replace('freeorder://action?name=gallery');
+            });
+
+            var html = "http://order.favinet.co.kr/html";
+            var attachesSplit = "<%=attaches%>";
+            var attachesLen = attachesSplit.split(",").length;
+
+            var attaches =  $("input[name='attaches']");
+            var attaches1 = "";
+            var attaches2 = "";
+            var attaches3 = "";
+            var attaches4 = "";
+            console.log('attachesLen : ' +attachesLen);
+            if(attachesLen > 0)
+            {
+                attaches1 = "<%=attaches[0]%>";
+                if(attaches1 == 'undefined')
+                {
+                    attaches1 = "";
+                }
+            }
+            if(attachesLen > 1)
+            {
+                attaches2 = "<%=attaches[1]%>";
+                if(attaches2 == 'undefined')
+                {
+                    attaches2 = "";
+                }
+            }
+
+            if(attachesLen > 2)
+            {
+                attaches3 = "<%=attaches[2]%>";
+                if(attaches3 == 'undefined')
+                {
+                    attaches3 = "";
+                }
+            }
+
+            if(attachesLen > 3)
+            {
+                attaches4 = "<%=attaches[3]%>";
+                if(attaches4 == 'undefined')
+                {
+                    attaches4 = "";
+                }
+            }
+
+            console.log('attaches1 : ' +attaches1);
+            console.log('attaches2 : ' +attaches2);
+            console.log('attaches3 : ' +attaches3);
+            console.log('attaches4 : ' +attaches4);
+
+            if(attaches1.length > 0)
+            {
+                $('#thumb1').css({"background": "url("+html+attaches1+")", 'background-repeat' : 'no-repeat', 'background-position':'center center', 'background-size' : 'contain'});
+                $(attaches[0]).val(attaches1);
+            }
+
+            if(attaches2.length > 0)
+            {
+                $('#thumb2').css({"background": "url("+html+attaches2+")", 'background-repeat' : 'no-repeat', 'background-position':'center center', 'background-size' : 'contain'});
+                $(attaches[1]).val(attaches2);
+            }
+
+            if(attaches3.length > 0)
+            {
+                $('#thumb3').css({"background": "url("+html+attaches3+")", 'background-repeat' : 'no-repeat', 'background-position':'center center', 'background-size' : 'contain'});
+                $(attaches[2]).val(attaches3);
+            }
+
+            if(attaches4.length > 0)
+            {
+                $('#thumb4').css({"background": "url("+html+attaches4+")", 'background-repeat' : 'no-repeat', 'background-position':'center center', 'background-size' : 'contain'});
+                $(attaches[3]).val(attaches4);
+            }
+
+
+
+
         });
+
+        //by use native
+        function setImg(path)
+        {
+            var src = 'http://order.favinet.co.kr/html' + path;
+            var attaches =  $("input[name='attaches']");
+
+            if($('#thumb1').attr('style') === undefined)
+            {
+                $('#thumb1').css({"background": "url("+src+")", 'background-repeat' : 'no-repeat', 'background-position':'center center', 'background-size' : 'contain'});
+                $(attaches[0]).val(path);
+            }
+            else if($('#thumb2').attr('style') === undefined)
+            {
+                $('#thumb2').css({"background": "url("+src+")", 'background-repeat' : 'no-repeat', 'background-position':'center center', 'background-size' : 'contain'});
+                $(attaches[1]).val(path);
+            }
+            else if($('#thumb3').attr('style') === undefined)
+            {
+                $('#thumb3').css({"background": "url("+src+")", 'background-repeat' : 'no-repeat', 'background-position':'center center', 'background-size' : 'contain'});
+                $(attaches[2]).val(path);
+            }
+            else
+            {
+                $('#thumb4').css({"background": "url("+src+")", 'background-repeat' : 'no-repeat', 'background-position':'center center', 'background-size' : 'contain'});
+                $(attaches[3]).val(path);
+            }
+        }
 
         function formSubmit(){
 
 
+            if($('#title').val().length == 0)
+            {
+                alert('매장명을 입력해 주세요.');
+                $('#title').focus();
+                return false;
+            }
+            else if($("#cat option:selected").val() == 'Z')
+            {
+                alert('업종을 선택 해주세요.');
+                $('#cat').focus();
+                return false;
+            }
+            else if($('#content').val().length == 0)
+            {
+                alert('메세지를 입력해 주세요.');
+                $('#content').focus();
+                return false;
+            }
 
+            $("#mainForm").submit();
+
+
+        }
+
+        function goSetting()
+        {
+            location.replace('http://order.favinet.co.kr/srv/seller/mobile/main/setting');
+        }
+
+        function sellerUpdate()
+        {
             var url = "/srv/seller/api/update";
-            var data = $("#mainForm").serializeObject();
+            var attachesLen =  $("input[name='attaches']").length;
 
-            alert(JSON.stringify(data));
+            var attaches = [];
+            $("input[name=attaches]").each(function(idx){
 
-            $.ajax({
-                type: 'POST',
-                contentType: 'application/x-www-form-urlencoded',
-                url: url,
-                data : data,
-                success: function(res) {
-                    var result = res.result;
-                    console.log('result : ' + JSON.stringify(result));
-                    if(result == 1)
-                    {
-                        window.location.replace('/srv/seller/mobile/main/setting');
-                    }
-                },
-                error: function(){
+                // 해당 체크박스의 Value 가져오기
+                var value = $(this).val();
 
+                var eqValue = $("input[name=attaches]:eq(" + idx + ")").val() ;
+                attaches.push(eqValue);
+
+                console.log(value + ":" + eqValue) ;
+                console.log("attaches :" + attaches.join(","));
+                if(idx == attachesLen-1)
+                {
+                    var data = {idx : $("#idx").val(), attaches : attaches.join(",")};
+
+                    $.ajax({
+                        type: 'POST',
+                        contentType: 'application/x-www-form-urlencoded',
+                        url: url,
+                        data : data,
+                        success: function(res) {
+                            var result = res.result;
+                            console.log('udpate result : ' + JSON.stringify(result));
+
+                        },
+                        error: function(){
+
+                        }
+                    });
                 }
             });
         }
@@ -61,75 +263,89 @@
 <div id="wrap" role="form">
 
     <div id="subConts">
-        <form method="POST" action="#" name = "mainForm"  id="mainForm">
-        <input type = "hidden" name = "email" id = "email" value = "<%=data.email%>" />
-        <input type = "hidden" name = "passwd" id = "passwd" value = "<%=data.passwd%>" />
-        <input type = "hidden" name = "phonenb" id = "phonenb" value = "<%=data.phonenb%>" />
-        <input type = "hidden" name = "gcmtoken" id = "gcmtoken" value = "<%=data.token%>" />
-        <input type = "hidden" name = "auth" id = "auth" value = "<%=data.auth%>" />
-        <input type = "hidden" name = "sns" id = "sns" value = "<%=data.sns%>" />
-        <input type = "hidden" name = "snsid" id = "snsid" value = "<%=data.snsid%>" />
-        <div id="settingConts">
-            <table class="tblType">
-                <colgroup> <col style="width:25%;"> <col style="width:75%;"> </colgroup>
-                <tbody>
-                <tr>
-                    <th>매장명</th>
-                    <td>
-                        <input id="title" type="text" name="title" placeholder = "매장명을 입력하세요." class = "seller_title_input" value = "<%=data.title%>">
-                    </td>
-                </tr>
-                <tr>
-                    <th>업종</th>
-                    <td>
-                        <select name="cat" id="cat" title="업종 선택" class="graySelect">
-                            <option value="Z">업종 선택</option>
-                            <option value="A" <% if(data.cat == 'A') {%>selected<%}%>>한식</option>
-                            <option value="B" <% if(data.cat == 'B') {%>selected<%}%>>분식</option>
-                            <option value="C" <% if(data.cat == 'C') {%>selected<%}%>>돈까스.회.일식</option>
-                            <option value="D" <% if(data.cat == 'D') {%>selected<%}%>>치킨</option>
-                            <option value="E" <% if(data.cat == 'E') {%>selected<%}%>>피자</option>
-                            <option value="F" <% if(data.cat == 'F') {%>selected<%}%>>중국집</option>
-                            <option value="G" <% if(data.cat == 'G') {%>selected<%}%>>족발.보쌈</option>
-                            <option value="H" <% if(data.cat == 'H') {%>selected<%}%>>야식</option>
-                            <option value="I" <% if(data.cat == 'I') {%>selected<%}%>>찜.탕</option>
-                            <option value="J" <% if(data.cat == 'J') {%>selected<%}%>>도시락</option>
-                            <option value="K" <% if(data.cat == 'K') {%>selected<%}%>>카페.디저트</option>
-                            <option value="L" <% if(data.cat == 'L') {%>selected<%}%>>패스트푸드</option>
-                            <option value="M" <% if(data.cat == 'M') {%>selected<%}%>>프렌차이즈</option>
-                        </select>
-                    </td>
-                </tr>
-                <tr>
-                    <th>메세지</th>
-                    <td>
-                        <textarea cols="10" rows="10" class="sellerintextarea" id="content" name="content"><%=data.content%></textarea>
-                    </td>
-                </tr>
-                <tr>
-                    <th>사진</th>
-                    <td>
-                        <input id="attache" type="file" name="attache">
-                    </td>
-                </tr>
-                <tr>
-                    <td colspan="2">
-                        <div id = "thumb4" class = "thumb2"></div>
-                        <div id = "thumb3" class = "thumb2"></div>
-                        <div id = "thumb2" class = "thumb2"></div>
-                        <div id = "thumb1" class = "thumb1"></div>
-                    </td>
-                </tr>
-                </tbody>
-            </table>
-            <div class="gap20"></div>
-            <div class="email_regist">수정</div>
-            <div class="email_login"><a href="javascript:history.back();" id="seller_cancel">취소</a></div>
-
-        </div>
+        <form method="POST" action="/srv/seller/mobile/update" name = "mainForm"  id="mainForm">
+            <input type = "hidden" name = "idx" id = "idx" value = "<%=data.idx%>" />
+            <div id="settingConts">
+                <table class="tblType">
+                    <colgroup> <col style="width:25%;"> <col style="width:75%;"> </colgroup>
+                    <tbody>
+                    <tr>
+                        <th>매장명</th>
+                        <td>
+                            <input id="title" type="text" name="title" placeholder = "매장명을 입력하세요." class = "seller_title_input" value = "<%=data.title%>">
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>업종</th>
+                        <td>
+                            <select name="cat" id="cat" title="업종 선택" class="graySelect">
+                                <option value="Z">업종 선택</option>
+                                <option value="A" <% if(data.cat == 'A') {%>selected<%}%>>한식</option>
+                                <option value="B" <% if(data.cat == 'B') {%>selected<%}%>>분식</option>
+                                <option value="C" <% if(data.cat == 'C') {%>selected<%}%>>돈까스.회.일식</option>
+                                <option value="D" <% if(data.cat == 'D') {%>selected<%}%>>치킨</option>
+                                <option value="E" <% if(data.cat == 'E') {%>selected<%}%>>피자</option>
+                                <option value="F" <% if(data.cat == 'F') {%>selected<%}%>>중국집</option>
+                                <option value="G" <% if(data.cat == 'G') {%>selected<%}%>>족발.보쌈</option>
+                                <option value="H" <% if(data.cat == 'H') {%>selected<%}%>>야식</option>
+                                <option value="I" <% if(data.cat == 'I') {%>selected<%}%>>찜.탕</option>
+                                <option value="J" <% if(data.cat == 'J') {%>selected<%}%>>도시락</option>
+                                <option value="K" <% if(data.cat == 'K') {%>selected<%}%>>카페.디저트</option>
+                                <option value="L" <% if(data.cat == 'L') {%>selected<%}%>>패스트푸드</option>
+                                <option value="M" <% if(data.cat == 'M') {%>selected<%}%>>프렌차이즈</option>
+                            </select>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>통화대기</th>
+                        <td>
+                            <select name="sec" id="sec" title="통화 대기 시간을 선택하세요." class="graySelect">
+                                <option value="0">시간 선택</option>
+                                <option value="3" <% if(data.sec == 3) {%>selected<%}%>>3초</option>
+                                <option value="5" <% if(data.sec == 5) {%>selected<%}%>>5초</option>
+                                <option value="10" <% if(data.sec == 10) {%>selected<%}%>>10초</option>
+                                <option value="12" <% if(data.sec == 12) {%>selected<%}%>>12초</option>
+                                <option value="15" <% if(data.sec == 15) {%>selected<%}%>>15초</option>
+                                <option value="20" <% if(data.sec == 20) {%>selected<%}%>>20초</option>
+                                <option value="25" <% if(data.sec == 25) {%>selected<%}%>>25초</option>
+                            </select>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>메세지</th>
+                        <td>
+                            <textarea cols="10" rows="10" class="sellerintextarea" id="content" name="content"><%=data.content%></textarea>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>사진</th>
+                        <td>
+                            <button class="replace">업로드</button>
+                            <input id="attache" type="file" name="attache" class = "upload">
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="2">
+                            <div id = "thumb4" class = "thumb2" onclick = "javascript:DeleteImage(3);"></div>
+                            <div id = "thumb3" class = "thumb2" onclick = "javascript:DeleteImage(2);"></div>
+                            <div id = "thumb2" class = "thumb2" onclick = "javascript:DeleteImage(1);"></div>
+                            <div id = "thumb1" class = "thumb1" onclick = "javascript:DeleteImage(0);"></div>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+                <div class="gap20"></div>
+                <div class="email_regist"><a href = "#">수정</a></div>
+                <div class="email_login"><a href="#" id="seller_cancel">취소</a></div>
+                <input type="hidden" class="input-default w100p" name="attaches" id="attaches" value = "<%if(attaches.length == 1 && attaches[0] != 'undefined') {%><%=attaches[0]%><%}%>"/>
+                <input type="hidden" class="input-default w100p" name="attaches" id="attaches" value = "<%if(attaches.length == 2 && attaches[1] != 'undefined') {%><%=attaches[1]%><%}%>"/>
+                <input type="hidden" class="input-default w100p" name="attaches" id="attaches" value = "<%if(attaches.length == 3 && attaches[2] != 'undefined') {%><%=attaches[2]%><%}%>"/>
+                <input type="hidden" class="input-default w100p" name="attaches" id="attaches" value = "<%if(attaches.length == 4 && attaches[3] != 'undefined') {%><%=attaches[3]%><%}%>"/>
+            </div>
         </form>
     </div>
 </div><!-- (e) #wrap -->
 
 </body>
+
 </html>

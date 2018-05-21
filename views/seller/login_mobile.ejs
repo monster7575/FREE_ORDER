@@ -10,8 +10,14 @@
     <script type="text/javascript" src="<%=CMS.cdn%>/html/fo/js/user.js"></script>
     <script type="text/javascript" src="<%=CMS.cdn%>/html/fo/js/facebook.js"></script>
     <script src="//developers.kakao.com/sdk/js/kakao.min.js"></script>
+    <SCRIPT LANGUAGE="JavaScript">
+    function formSubmit(){
+    //return document.mainForm.submit();
 
+        $("#mainForm").submit();
 
+    }
+    </script>
 </head>
 <body>
 <!-- content -->
@@ -29,14 +35,16 @@
             </ul>
         </div>
         <div class="gap10"></div>
-        <div class="email_login" onclick = "emailLogin($('#email').val(), $('#passwd').val());"><a href="javascript:void(0);" id="email_login">이메일 로그인</a></div>
+        <div class="email_regist" onclick = "emailLogin($('#email').val(), $('#passwd').val());"><a href="javascript:void(0);" id="email_login">로그인</a></div>
         <div class="gap20"></div>
 
         <div class="sns">
-            <div class="sns_kakao" onclick = "snsLogin('K');"><a href="javascript:void(0);" >카카오 시작하기</a></div>
-            <div class="sns_naver" onclick = "snsLogin('N');"><a href="javascript:void(0);" id="naver_id_login">네이버로 시작하기</a></div>
-            <div class="sns_facebook" onclick = "snsLogin('F');"><a href="javascript:void(0);" id="facebook">페이스북으로 시작하기</a></div>
-            <div class="email_regist" onclick = "emailJoin();"><a href="javascript:void(0);" id="email_regist">이메일로 시작하기</a></div>
+            <div class="sns_kakao" onclick = "snsLogin('K');"><a href="javascript:void(0);" >KAKAO</a></div>
+            <div class="sns_naver" onclick = "snsLogin('N');"><a href="javascript:void(0);" id="naver_id_login">NAVER</a></div>
+            <div class="sns_facebook" onclick = "snsLogin('F');"><a href="javascript:void(0);" id="facebook">FACEBOOK</a></div>
+            <div class="email_login" onclick = "emailJoin();"><a href="javascript:void(0);" id="email_regist">회원가입</a></div>
+            <div class="gap10"></div>
+            <div class="email_login find_passwd" onclick = "javascript:location.href = '/srv/seller/mobile/find';"><a href="javascript:void(0);" id="find_passwd">비밀번호찾기</a></div>
         </div>
 
     </div>

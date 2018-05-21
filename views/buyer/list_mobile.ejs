@@ -1,50 +1,99 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ko" lang="ko">
-<title>주문 리스트</title>
+<title>title</title>
 <head>
     <%- partial('../common/header_mobile.ejs') %>
     <script type="text/javascript">
-        function updateState(idx, state, phonenb, startdate, bobjid) {
 
-            //alert('idx : ' + idx + 'state : ' + state + 'phonenb :' + phonenb + 'startdate : ' + startdate);
-            var url = "/srv/buymsglog/api/update";
-            var data = {idx: idx};
-
-
-            if (state == '0') {
-                data.startdate = moment().format('YYYY-MM-DD HH:mm:ss');
-                var bool = confirm('접수 처리를 진행하시겠습니까?');
-                if (bool) {
-                    var content = '고객님의 주문이 정상 접수 되었습니다.';
-                    window.location.replace('freeorder://action?name=sendsms&content=' + content + '&phonenb=' + phonenb +'&bobjid='+bobjid);
-                }
+        var pageNum = 1;
+        $(window).scroll(function() {
+            if($(window).scrollTop() == $(document).height() - $(window).height()) {
+                pageNum = pageNum + 1;
+                morePage(pageNum)
             }
-            else if (state == '1') {
-                var due = $("#due option:selected").val();
+        });
+
+        function morePage(pageNum)
+        {
+            window.location.replace('freeorder://action?name=start_loading');
+            var url = "/srv/buyer/api/list";
+            $.ajax({
+                url:url,
+                type:"POST",
+                contentType: 'application/x-www-form-urlencoded',
+                data : {page : pageNum},
+                success:function(res){
+                    $('#wrap').append(res);
+                    window.location.replace('freeorder://action?name=stop_loading');
+                },
+                error : function(err)
+                {
+                    console.log('error ===>' + JSON.stringify(err));
+                }
+            });
+        }
+
+        $(function() {
+            window.location.replace('freeorder://action?name=setTopMenu&params={"refreshBt":"Y", "settingBt" : "Y"}');
+
+            $(".finish_btn").click(function() {
+                window.location.replace('freeorder://action?name=finish');
+            });
+
+
+        });
+
+        function Call(phonenb)
+        {
+            window.location.replace('freeorder://action?name=call&phonenb='+phonenb);
+        }
+
+        function updateState(idx, state, phonenb, bobjid) {
+
+           // alert('idx : ' + idx + 'state : ' + state + 'phonenb :' + phonenb);
+
+            var startdate = moment().format('YYYY-MM-DD HH:mm:ss');
+            var url = "/srv/buymsglog/api/update";
+            var data = {idx: idx, state : state, startdate : startdate};
+            var bool = false;
+
+
+            if (state == '1') {
+                var due = $("#due"+idx+" option:selected").val();
                 if (due == 0) {
-                    alert('소요시간을 선택하세요.');
+                    alert('배달시간선택을 선택하세요.');
                 }
                 else {
+
                     var duedate = moment(startdate).add(due, 'minute');
                     data.duedate = moment(duedate).format('YYYY-MM-DD HH:mm:ss');
-                    var bool = confirm('도착 예정 시간 ' + data.duedate + '으로 SMS를 발송합니다.');
+                    bool = confirm('[주문상품이 '+due+'분뒤에 배달예정입니다. 감사합니다.] SMS 전송을 하시겠습니까?');
                     if (bool) {
-                        var content = '고객님이 주문하신 음식이 ' + data.duedate + '에 도착할 예정입니다.';
-                        window.location.replace('freeorder://action?name=sendsms&content=' + content + '&phonenb=' + phonenb +'&bobjid='+bobjid);
+                        var content = '주문상품이 '+due+'분뒤에 배달예정입니다. 감사합니다.';
+                        window.location.replace('freeorder://action?name=sendsms&content=' + content + '&phonenb=' + phonenb +'&bobjid='+bobjid+'&link=N');
                     }
                 }
             }
             else if (state == '2') {
                 data.enddate = moment().format('YYYY-MM-DD HH:mm:ss');
-                var bool = confirm('해당 주문건을 완료합니다.');
+                bool = confirm('배달 완료 SMS 전송을 하시겠습니까?');
                 if (bool) {
-
+                    var content = '주문상품이 배달완료되었습니다. 이용해주셔서 감사합니다. 새로운 주문은 아래링크를 클릭 하세요';
+                    window.location.replace('freeorder://action?name=sendsms&content=' + content + '&phonenb=' + phonenb +'&bobjid='+bobjid+'&link=Y');
                 }
             }
             else if (state == '3')
-                alert('해당 주문건은 완료 되었습니다.');
+            {
+                data.enddate = moment().format('YYYY-MM-DD HH:mm:ss');
+                bool = confirm('주문을 정말 취소하시겠습니까?');
+                if(bool)
+                {
+                    var content = '주문이 취소되었습니다. 다음에 다시 이용해주세요. 새로운 주문은 아래 링크를 클릭하세요.';
+                    window.location.replace('freeorder://action?name=sendsms&content=' + content + '&phonenb=' + phonenb +'&bobjid='+bobjid+'&link=Y');
+                }
+            }
 
-            if (state != '3')
+            if (state != '4' && bool)
             {
                 $.ajax({
                     type: 'POST',
@@ -67,70 +116,81 @@
 <body>
 <div id="wrap">
 
-    <%
+    <%if(data.seller.useyn == 'Y'){%>
+        <%
 
-    if(data.length == 0)
-    {
-    %>
-    <div class = "order_item">
+        if(data.buyers.length == 0)
+        {
+        %>
+        <div style = "text-align: center;height:100%;margin-top: 70%;font-size: 1.5rem">
 
 
-        <!-- 주문 내용 -->
-        <div class = "order_content_box">
-            <div class = "order_content">
-            주문 내역이 없습니다.
-            </div>
+            <!-- 주문 내용 -->
+
+                주문 내역이 없습니다.
+
+
         </div>
 
-
-    </div>
-
-    <div class = "dash"></div>
-    <%
-    }else
-    {
-        for(var i = 0 ; i < data.length ; i++)
+        <%
+        }else
         {
-            var obj = data[i];
-            var content = obj.content;
-            var regdate = moment(obj.regdate).format('YYYY-MM-DD HH:mm');
-            var phonenb = obj.phonenb;
-            var address = obj.address;
-            var idx = obj.idx;
-            var bobjid = obj.bobjid;
-            var now = moment().format('YYYY-MM-DD HH:mm');
-            console.log('regdate : ' + regdate);
-            console.log('now : ' + now);
-            var minute = moment(now).diff(regdate, 'minute');
-            var startdate  = obj.startdate;
-            var duedate = obj.duedate;
-            var enddate = obj.enddate;
-            var state = 0;
-            var state_txt = "";
-            var css_txt = "";
-            if(enddate)
+            /**
+             * 상태 정보
+             state 컬럼
+             0 : 확인
+             1 : XX분 뒤 배달
+             2 : 배달 완료
+             3 : 배달 취소
+             */
+            for(var i = 0 ; i < data.buyers.length ; i++)
+            {
+                var obj = data.buyers[i];
+                var content = obj.content;
+                var regdate = moment(obj.regdate).format('YYYY-MM-DD HH:mm');
+                var phonenb = obj.phonenb;
+                var phonenbs = phonenb.split('-');
+                var address = obj.address;
+                var address2 = obj.address2;
+                var idx = obj.idx;
+                var bobjid = obj.bobjid;
+                var now = moment().format('YYYY-MM-DD HH:mm');
+                console.log('regdate : ' + regdate);
+                console.log('now : ' + now);
+                var gapTime = moment(now).diff(regdate, 'minute');
+                gapTime = parseInt(gapTime);
+                var minute = (gapTime < 60) ? gapTime + "분전" : (gapTime/60 < 24) ? parseInt(gapTime/60) + "시간전" : (gapTime/1440 < 11) ? parseInt(gapTime/1440)+"일전" : "";
+
+
+                var startdate  = obj.startdate;
+                var duedate = obj.duedate;
+                var enddate = obj.enddate;
+                var leftMin = moment(duedate).diff(now, 'minute');
+                leftMin = (leftMin > 0) ? leftMin : 0;
+
+                var state = obj.state;
+                var state_txt = "";
+                var css_txt = "";
+                if(state == 0)
+                {
+                    state_txt = "확인";
+                    css_txt = "order_btn";
+                }
+            else if(state == 1)
+            {
+                state_txt = leftMin + "분뒤 배달";
+                css_txt = "order_btn_start";
+            }
+            else if(state == 2)
             {
                 state = 3;
-                state_txt = "완료";
+                state_txt = "배달완료";
                 css_txt = "order_btn_end";
-            }
-            else if(duedate)
-            {
-                state = 2;
-                state_txt = "배달중";
-                css_txt = "order_btn_due";
-            }
-            else if(startdate)
-            {
-                state = 1;
-                state_txt = "접수완료";
-                css_txt = "order_btn_start";
             }
             else
             {
-                state = 0;
-                state_txt = "접수대기";
-                css_txt = "order_btn";
+                state_txt = "배달취소";
+                css_txt = "order_btn_end";
             }
 
     %>
@@ -139,60 +199,87 @@
         <!-- 주문 내역 -->
         <div class = "pad10lr">
             <div class = "order_header">
-                <div class = "order_header_phone"><%=phonenb%><span class = "order_header_time"><%=minute%>분전</span></div>
+                <div class = "order_header_phone"><span style="float:left;margin-left: 10px"><img src = "http://order.favinet.co.kr/html/fo/img/sub/icon_phone.png" class="call" style = "width:20px;height:20px;" onclick = "javascript:Call('<%=phonenb%>')"/></span> ***-****-<%=phonenbs[2]%><span class = "order_header_time"><%=minute%></span></div>
             </div>
         </div>
 
         <!-- 주문 내용 -->
         <div class = "order_content_box">
             <div class = "order_content">
-            <span class = "order_content_text"><%=content%><br/><br/><br/> 주소 : <%=address%></span>
+            <span class = "order_content_text"><%=content%></span>
             </div>
         </div>
 
+        <!-- 주소 -->
+        <div class = "pad10lr">
+            <div class = "order_header">
+                <div class = "order_header_phone" style="text-align: left;"><span style="text-align:start;margin-left: 10px"><%=address%> <%=address2%></span></div>
+            </div>
+        </div>
         <%
-            if(state == '1')
-            {
+        if(state == '0')
+        {
         %>
         <!-- 주문 시간 선택 -->
         <div class = "pad10l pad10r mg10t">
-            <select name="due" id="due" title="주문소요시간" class="graySelect">
-                <option value="0">주문소요시간 선택</option>
-                <option value="10">10분</option>
+            <select name="due" id="due<%=idx%>" title="배달시간선택" class="graySelect">
+                <option value="0">배달시간선택</option>
                 <option value="20">20분</option>
                 <option value="30">30분</option>
                 <option value="40">40분</option>
                 <option value="50">50분</option>
                 <option value="60">60분</option>
-                <option value="70">70</option>
             </select>
         </div>
+
         <%
-            }
-            else if(state == '2')
-            {
-        %>
-        <div class = "pad10l pad10r mg10t">
-            배달 완료 예정 시간 : <%=moment(duedate).format('YYYY-MM-DD HH:mm')%>
-        </div>
-        <%
-            }
+        }
+
         %>
 
         <!-- 주문 상태 버튼 -->
-        <div class = "pad10l pad10r mg10t" id = "seller<%=idx%>" onclick="updateState('<%=idx%>', '<%=state%>', '<%=phonenb%>', '<%=startdate%>', '<%=bobjid%>');">
-            <div class = "<%=css_txt%>">
+        <div class = "pad10l pad10r mg10t" id = "seller<%=idx%>">
+            <div class = "<%=css_txt%>" style="display: inherit;float: left;margin-bottom: 10px;" onclick="updateState('<%=idx%>', parseInt('<%=state%>')+1, '<%=phonenb%>', '<%=bobjid%>');">
                 <div class = "order_btn_text"><%=state_txt%></div>
             </div>
+            <%
+            if(state == '0' || state == '1')
+            {
+            %>
+            <div class = "cancel_btn" style="display: inherit;float:right;margin-bottom: 10px;" onclick="updateState('<%=idx%>', '3', '<%=phonenb%>', '<%=bobjid%>');">
+                <div class = "order_btn_text">취소</div>
+            </div>
+            <%
+            }
+            %>
         </div>
     </div>
 
-    <div class = "dash"></div>
+    <div class = "dash" style="display: inherit;"></div>
     <%
     }
     }
+    }else {
     %>
+    <div style = "text-align: center;height:100%;margin-top: 50%;font-size: 1.5rem;line-height: 1.2;">
 
+
+        본앱은 사업자 전용입니다.<br/>
+        사용승인후 푸시를 보내드립니다.<br/>
+        이후 앱사용하시면 됩니다.<br/>
+        가입해 주셔서 감사힙니다.<br/>
+        <br/>
+        <br/>
+        <div>
+            <div class = "finish_btn" style="border-radius:8px; border:1px solid #8B8B8B; background:#FFFFFF; margin-top:10px; overflow:hidden;color:#000000;margin-left: 20%;margin-right: 20%">
+                <div class = "order_btn_text">확인</div>
+            </div>
+        </div>
+
+    </div>
+    <%
+    }
+    %>
 
 
 </div><!-- (e) #wrap -->

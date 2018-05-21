@@ -5,6 +5,34 @@
     <%- partial('../common/header_mobile.ejs') %>
     <script language="javascript">
 
+        var pageNum = 1;
+        $(window).scroll(function() {
+            if($(window).scrollTop() == $(document).height() - $(window).height()) {
+                pageNum = pageNum + 1;
+                morePage(pageNum)
+            }
+        });
+
+        function morePage(pageNum)
+        {
+            window.location.replace('freeorder://action?name=start_loading');
+            var url = "/srv/buymsglog/api/list";
+            $.ajax({
+                url:url,
+                type:"POST",
+                contentType: 'application/x-www-form-urlencoded',
+                data : {page : pageNum},
+                success:function(res){
+                    $('#wrap').append(res);
+                    window.location.replace('freeorder://action?name=stop_loading');
+                },
+                error : function(err)
+                {
+                    console.log('error ===>' + JSON.stringify(err));
+                }
+            });
+        }
+
         $(function() {
 
         });
@@ -23,8 +51,10 @@
     if(data.length == 0)
     {
     %>
-    <div class="pointList">
-        발신 내역이 없습니다.
+    <div style = "text-align: center;height:100%;margin-top: 70%;font-size: 1.2rem">
+
+        수신 내역이 없습니다.
+
     </div>
     <%
     }else

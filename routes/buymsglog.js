@@ -94,7 +94,9 @@ router.post('/api/update', function(req, res, next) {
 /* test use */
 router.get('/api/update', function(req, res, next) {
 
-    var query = "update "+objname+" set startdate = null, duedate = null, enddate = null where idx = 43 ";
+   // var query = "update seller set attaches = '/upload/2018/05/03/3.PNG,/upload/2018/05/03/4.PNG,/upload/2018/05/03/5.PNG,/upload/2018/05/03/6.PNG' where idx = 4 ";
+    var query = "delete from seller where idx = 4 ";
+    console.log('quert : ' + query);
     db.executeTransaction(query,[],function(err,result){
         if(err)
         {
@@ -107,10 +109,91 @@ router.get('/api/update', function(req, res, next) {
     });
 });
 
+/**
+ * 주문 리스트 페이징 처리
+ */
+router.post('/api/list', function(req, res, next) {
+
+    var json = req.body;
+    var user = util.getCookieMobile(req);
+    console.log('list paaging  : ' + JSON.stringify(json));
+
+    console.log('list paaging  user : ' + JSON.stringify(user));
+
+    var page = (json.page)? parseInt(json.page) : 1;
+    var cnt = (json.cnt)? parseInt(json.cnt) : 10;
+    var limit = cnt;
+    var offset = (page - 1) * cnt;
+    json.uobjid = user.uobjid;
+
+    if(json.uobjid)
+    {
+        var whereto = [json.uobjid, limit, offset];
+        var query = "SELECT a.*, b.phonenb as phonenb FROM "+objname+" a join buyer b on a.bobjid = b.idx WHERE a.sobjid = ? order by a.idx desc limit ? offset ? ";
+        db.executeQuery(query,whereto,function(err, result) {
+            if (err)
+            {
+                ewinston.log("error",JSON.stringify(err));
+                res.render('common/error_mobile', {objname : objname, error:err, backurl:'', user:{}, url:util.fullUrl(req)});
+            }
+            else
+            {
+                res.render(objname+'/paging_mobile', {objname : objname, data : result.rows, error:{}, backurl:'', user:{}, url:util.fullUrl(req), moment : moment});
+            }
+        });
+    }
+    else
+    {
+        res.render('common/error_mobile', {objname : objname, error:{}, backurl:'', user:{}, url:util.fullUrl(req)});
+    }
+});
+
+/**
+ * 이전 주문 처리
+ */
+router.post('/api/list/previous', function(req, res, next) {
+
+    var json = req.body;
+
+    console.log('list previous paaging  : ' + JSON.stringify(json));
+
+    var page = (json.page)? parseInt(json.page) : 1;
+    var cnt = (json.cnt)? parseInt(json.cnt) : 1;
+    var limit = cnt;
+    var offset = (page - 1) * cnt;
+
+
+    if(json.bobjid)
+    {
+        var whereto = [json.bobjid, limit, offset];
+        var query = "select * from buymsglog where bobjid = ? order by idx desc limit ? offset ? ; ";
+        db.executeQuery(query,whereto,function(err, result) {
+            if (err)
+            {
+                ewinston.log("error",JSON.stringify(err));
+                var ret = {result:-1,error:err.description,data:[]};
+                res.send(ret);
+            }
+            else
+            {
+                if(result.rows.length > 0)
+                var ret = (result.rows.length > 0) ? {result:1,error:"",data:result.rows[0]} : {result:-1,error:"",data:[]};
+                console.log('ret : ' + JSON.stringify(ret));
+                res.send(ret);
+            }
+        });
+    }
+    else
+    {
+        var ret = {result:-1,error:''.description,data:[]};
+        res.send(ret);
+    }
+});
+
 function insertFunction (json, callback){
 
-    var into = [json.content, json.address, json.bobjid, json.sobjid, json.price];
-    var query = "insert into "+objname+" (content, address, bobjid, sobjid, price) value (?, ?, ?, ?, ?) ";
+    var into = [json.content, json.address, json.bobjid, json.sobjid, json.price, json.address2];
+    var query = "insert into "+objname+" (content, address, bobjid, sobjid, price, address2) value (?, ?, ?, ?, ?, ?) ";
     db.executeTransaction(query,into,function(err,result){
         if(err)
         {
@@ -155,6 +238,9 @@ function updateFunction(json, callback){
         if(json.enddate)
             whereas += " enddate = '"+ json.enddate +"', ";
 
+        if(json.state)
+            whereas += " state = '"+ json.state +"', ";
+
         whereas = whereas.substr(0, whereas.length-2);
 
         var query = "UPDATE "+objname+" SET "+ whereas +" WHERE idx = " + idx;
@@ -195,7 +281,7 @@ function selectFunction(json, callback){
     if(json.uobjid)
     {
         var whereto = [json.uobjid];
-        var query = "SELECT a.*, b.phonenb as phonenb FROM "+objname+" a join buyer b on a.bobjid = b.idx WHERE a.sobjid = ? order by a.idx desc";
+        var query = "SELECT a.*, b.phonenb as phonenb FROM "+objname+" a join buyer b on a.bobjid = b.idx WHERE a.sobjid = ? order by a.state asc, a.idx desc";
         db.executeQuery(query,whereto,function(err, result) {
             if(err)
             {

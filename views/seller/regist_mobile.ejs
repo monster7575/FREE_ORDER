@@ -3,92 +3,10 @@
 <title>이메일 회원가입</title>
 <head>
     <%- partial('../common/header_mobile.ejs') %>
-
+    <script type="text/javascript" src="<%=CMS.cdn%>/html/fo/js/user.js"></script>
     <SCRIPT LANGUAGE="JavaScript">
         <!--
 
-        $(function(){
-            $("#mainForm").validate({
-                rules: {
-                    email: {
-                        required: true,
-                        email: true
-                    },
-                    passwd: {
-                        required: true
-                    },
-                    passwd_chk: {
-                        required: true,
-                        equalTo: '#passwd'
-                    }
-                },
-                messages: {
-                    email: {
-                        required:"이메일 주소를 정확하게 입력해주세요.",
-                        email:"이메일 주소를 정확하게 입력해주세요."
-                    },
-                    passwd: {
-                        required:"비밀번호를 입력해주세요."
-                    },
-                    passwd_chk: {
-                        required:"비밀번호를 재 입력해주세요.",
-                        equalTo:"비밀번호 동일하지 않습니다. 재 입력해주세요."
-                    }
-                },
-                errorPlacement: function(error, element) {
-                    // do nothing
-                },
-                invalidHandler: function(form, validator) {
-                    var errors = validator.numberOfInvalids();
-                    if (errors) {
-                        alert(validator.errorList[0].message);
-                        validator.errorList[0].element.focus();
-                    }
-                },
-                submitHandler: function(form){
-
-                    userSnsCheck(function(data){
-
-
-                        var result = data.result;
-
-                        if(result == -1)
-                        {
-                            form.submit();
-                        }
-                        else if(result == -2)
-                        {
-                            alert("매장 승인 전입니다. 관리자에게 문의하여 주세요.");
-                        }
-                    });
-
-                }
-
-            });
-            window.location.replace('freeorder://action?name=get_seller');
-        });
-
-
-        function userSnsCheck(callback)
-        {
-            var url = "/srv/seller/api/select";
-            var data = {auth : 'E', email : $('#email').val()};
-
-            $.ajax({
-                type: 'POST',
-                contentType: 'application/x-www-form-urlencoded',
-                url: url,
-                data : data,
-                success: function(res) {
-                    if(callback)
-                        callback(res);
-
-                },
-                error: function(){
-
-                }
-            });
-        }
 
         function formSubmit(){
             //return document.mainForm.submit();
@@ -98,16 +16,6 @@
                 $("#mainForm").submit();
             }
         }
-
-        //Call By Native
-        function setSeller(phonenb, token)
-        {
-            console.log('phonenb : ' + phonenb);
-            console.log('token : ' + token);
-            $('#phonenb').val(phonenb);
-            $('#token').val(token);
-        }
-
 
         //-->
     </SCRIPT>
@@ -124,28 +32,28 @@
 
 
 <div id="wrap">
-    <form method="POST" action="<%=CMS.proxypath%>/srv/<%=objname%>/regist" name = "mainForm"  id="mainForm">
+    <form method="POST" action="/srv/<%=objname%>/regist" name = "mainForm"  id="mainForm">
     <input type = "hidden" name = "auth" id = "auth" value = "E" />
     <div id="subConts">
         <div class="sub_logo"><img src="<%=CMS.cdn%>/html/fo/img/logo.png" alt="TouchCash 로고" style = "width:100px;" /></div>
 
         <div class="join_box">
             <ul>
-                <li><input id="email" type="text" name="email" placeholder = "이메일을 입력하세요." value = "kwon8888@nate.com"></li>
-                <li><input id="passwd" type="password" name="passwd" placeholder = "비밀번호를 입력하세요." value="rudfks79"></li>
-                <li><input id="passwd_chk" type="password" name="passwd_chk" placeholder = "비밀번호를 다시 입력하세요." value = "rudfks79"></li>
+                <li><input id="email" type="text" name="email" placeholder = "이메일을 입력하세요."></li>
+                <li><input id="passwd" type="password" name="passwd" placeholder = "비밀번호를 입력하세요."></li>
+                <li><input id="passwd_chk" type="password" name="passwd_chk" placeholder = "비밀번호를 재입력하세요."></li>
             </ul>
         </div>
         <div class="gap10"></div>
 
 
         <div class="sns" id = "btn_email_submit">
-            <div class="email_regist"><a href="javascript:formSubmit();" id="email_regist">이메일 회원가입</a></div>
+            <div class="email_regist"><a href="javascript:emailLogin($('#email').val(), $('#passwd').val());" id="email_regist">가입합니다.</a></div>
         </div>
 
     </div>
     <input id="phonenb" type="hidden" name="phonenb">
-    <input id="token" type="hidden" name="token">
+    <input id="gcmtoken" type="hidden" name="gcmtoken">
     </form>
 </div><!-- (e) #wrap -->
 

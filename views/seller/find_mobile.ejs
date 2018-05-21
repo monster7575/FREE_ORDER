@@ -1,0 +1,121 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ko" lang="ko">
+<title>비밀번호 찾기</title>
+<head>
+    <%- partial('../common/header_mobile.ejs') %>
+    <script type="text/javascript" src="<%=CMS.cdn%>/html/fo/js/user.js"></script>
+    <SCRIPT LANGUAGE="JavaScript">
+        <!--
+
+
+        $(function() {
+
+            $("#mainForm").validate({
+                rules: {
+                    title: {
+                        required: true
+                    },
+                    email: {
+                        required: true,
+                        email: true
+                    }
+                },
+                messages: {
+                    title: {
+                        required: "매장명을 입력해주세요."
+                    },
+                    email: {
+                        required: "이메일을 입력해주세요.",
+                        email: "이메일 형식이 아닙니다."
+                    }
+                },
+                errorPlacement: function (error, element) {
+                    // do nothing
+                },
+                invalidHandler: function (form, validator) {
+                    var errors = validator.numberOfInvalids();
+                    if (errors) {
+                        alert(validator.errorList[0].message);
+                        validator.errorList[0].element.focus();
+                    }
+                },
+                submitHandler: function(form){
+
+
+                    var url = "/srv/seller/api/find";
+                    var data = {email : $('#email').val(), title : $('#title').val()};
+
+                    $.ajax({
+                        type: 'POST',
+                        contentType: 'application/x-www-form-urlencoded',
+                        url: url,
+                        data : data,
+                        success: function(res) {
+                            var result = res.result;
+                            console.log('result : ' + JSON.stringify(res));
+                            if(result < 0)
+                            {
+                                alert('입력한 정보가 잘못되었습니다.');
+                            }
+                            else
+                                alert('이메일로  변경된 비밀번호를 전송하였습니다.');
+                        },
+                        error: function(){
+
+                        }
+                    });
+                }
+            });
+        });
+
+        function formSubmit(){
+            //return document.mainForm.submit();
+            if (!$("#mainForm").validate()) {
+                return false;
+            } else {
+                $("#mainForm").submit();
+            }
+        }
+
+        //-->
+    </SCRIPT>
+
+    <style type="text/css">
+        .error_input::-webkit-input-placeholder {
+            color: #EA0000
+        }
+    </style>
+
+</head>
+<body>
+<!-- content -->
+
+
+<div id="wrap">
+    <form method="POST" action="#" name = "mainForm"  id="mainForm">
+        <input type = "hidden" name = "auth" id = "auth" value = "E" />
+        <div id="subConts">
+            <div class="sub_logo"><img src="<%=CMS.cdn%>/html/fo/img/logo.png" alt="TouchCash 로고" style = "width:100px;" /></div>
+
+            <div class="join_box">
+                <ul>
+                    <li><input id="title" type="text" name="title" placeholder = "매장이름을 입력하세요."></li>
+                    <li><input id="email" type="text" name="email" placeholder = "가입한 이메일을 입력하세요."></li>
+                </ul>
+            </div>
+            <div class="gap10"></div>
+
+
+            <div class="sns" id = "btn_email_submit">
+                <div class="email_regist" onclick = "javascript:formSubmit();"><a href="#" id="email_regist">확인</a></div>
+            </div>
+
+        </div>
+        <input id="phonenb" type="hidden" name="phonenb">
+        <input id="gcmtoken" type="hidden" name="gcmtoken">
+    </form>
+</div><!-- (e) #wrap -->
+
+<!-- content //-->
+</body>
+</html>
